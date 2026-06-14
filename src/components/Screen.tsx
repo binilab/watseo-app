@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useCallback, useRef } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -20,6 +21,7 @@ type ScreenProps = {
   scroll?: boolean;
   bottomInset?: number;
   hasBottomTabs?: boolean;
+  resetScrollOnFocus?: boolean;
 };
 
 export function Screen({
@@ -28,7 +30,10 @@ export function Screen({
   scroll = true,
   bottomInset,
   hasBottomTabs = true,
+  resetScrollOnFocus,
 }: ScreenProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const shouldResetScrollOnFocus = resetScrollOnFocus ?? hasBottomTabs;
   const resolvedBottomInset =
     bottomInset ?? (hasBottomTabs ? TAB_CONTENT_BOTTOM_INSET : spacing.xxxl);
   const contentStyle = [
@@ -44,8 +49,23 @@ export function Screen({
     },
   ];
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!shouldResetScrollOnFocus) {
+        return undefined;
+      }
+
+      const frame = requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      });
+
+      return () => cancelAnimationFrame(frame);
+    }, [shouldResetScrollOnFocus]),
+  );
+
   const content = scroll ? (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={contentStyle}
       showsVerticalScrollIndicator={false}
     >

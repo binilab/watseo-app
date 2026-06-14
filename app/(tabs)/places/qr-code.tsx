@@ -6,15 +6,7 @@ import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 export default function PlaceQrCodeScreen() {
   return (
-    <Screen
-      footer={
-        <AppButton
-          onPress={() => router.back()}
-          title="장소 목록으로 돌아가기"
-          variant="secondary"
-        />
-      }
-    >
+    <Screen>
       <SectionHeader
         title="QR 코드 생성 및 안내"
         description="실제 QR 생성 없이, 도착 장소에 붙일 안내 화면만 구성했습니다."
@@ -38,6 +30,13 @@ export default function PlaceQrCodeScreen() {
           variant="secondary"
         />
       </Card>
+
+      <AppButton
+        onPress={() => router.back()}
+        title="장소 목록으로 돌아가기"
+        variant="secondary"
+        style={styles.backButton}
+      />
     </Screen>
   );
 }
@@ -62,5 +61,8 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
     textAlign: "center",
+  },
+  backButton: {
+    marginTop: spacing.sm,
   },
 });
