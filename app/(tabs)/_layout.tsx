@@ -1,6 +1,12 @@
 import { Tabs } from "expo-router";
 import { Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
-import { colors, radius, shadows } from "@/src/theme/tokens";
+import {
+  colors,
+  radius,
+  shadows,
+  TAB_BAR_BOTTOM_OFFSET,
+  TAB_BAR_HEIGHT,
+} from "@/src/theme/tokens";
 
 export default function TabLayout() {
   return (
@@ -14,10 +20,10 @@ export default function TabLayout() {
           fontWeight: "700",
         },
         tabBarStyle: {
-          height: 76,
+          height: TAB_BAR_HEIGHT,
           left: 18,
           right: 18,
-          bottom: 12,
+          bottom: TAB_BAR_BOTTOM_OFFSET,
           paddingTop: 9,
           paddingBottom: 11,
           borderTopWidth: 0,

@@ -7,6 +7,7 @@ import { colors, spacing, typography } from "@/src/theme/tokens";
 export default function OnboardingScreen() {
   return (
     <Screen
+      hasBottomTabs={false}
       footer={
         <AppButton
           icon={HeartHandshake}
@@ -19,7 +20,7 @@ export default function OnboardingScreen() {
         <View style={styles.mark}>
           <ShieldCheck color={colors.primaryDark} size={42} strokeWidth={2.5} />
         </View>
-        <StatusChip label="Soft safety check-in" tone="active" />
+        <StatusChip label="부드러운 도착 확인" tone="active" />
         <Text style={styles.title}>도착했다는 말이 가장 편하게 닿도록</Text>
         <Text style={styles.description}>
           왔어는 귀가 시작부터 도착 확인까지 연결된 사람과 부드럽게 상태를 나누는 앱입니다.

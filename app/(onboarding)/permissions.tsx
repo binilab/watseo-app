@@ -8,6 +8,7 @@ import { colors, spacing, typography } from "@/src/theme/tokens";
 export default function PermissionsScreen() {
   return (
     <Screen
+      hasBottomTabs={false}
       footer={
         <AppButton
           icon={CheckCircle2}

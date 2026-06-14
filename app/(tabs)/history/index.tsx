@@ -3,8 +3,11 @@ import { CalendarCheck2 } from "lucide-react-native";
 import { Card, ListItem, Screen, SectionHeader, StatusChip } from "@/src/components";
 import { returnHistory } from "@/src/data/mock";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function HistoryScreen() {
+  const completedStatus = getStatusDisplay("arrived_verified");
+
   return (
     <Screen>
       <SectionHeader
@@ -18,7 +21,7 @@ export default function HistoryScreen() {
             <CalendarCheck2 color={colors.primaryDark} size={30} strokeWidth={2.4} />
           </View>
           <View style={styles.summaryCopy}>
-            <StatusChip label="이번 주 3회 완료" tone="active" />
+            <StatusChip label={`이번 주 ${returnHistory.length}회 완료`} tone={completedStatus.tone} />
             <Text style={styles.big}>도착 확인이 꾸준히 기록되고 있어요</Text>
           </View>
         </View>

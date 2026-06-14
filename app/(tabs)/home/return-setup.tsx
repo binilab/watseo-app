@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { Navigation } from "lucide-react-native";
 import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
-import { arrivalPlaces, connectedPeople } from "@/src/data/mock";
+import { alertRecipients, arrivalPlaces, currentTrip } from "@/src/data/mock";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 
 export default function ReturnSetupScreen() {
@@ -35,7 +35,7 @@ export default function ReturnSetupScreen() {
 
       <Card>
         <Text style={styles.label}>알림 받을 사람</Text>
-        {connectedPeople.slice(0, 2).map((person) => (
+        {alertRecipients.map((person) => (
           <ListItem
             detail={person.status}
             key={person.name}
@@ -47,8 +47,10 @@ export default function ReturnSetupScreen() {
 
       <Card tone="warm">
         <View style={styles.timeRow}>
-          <Text style={styles.time}>22:30</Text>
-          <Text style={styles.copy}>예상 도착 시간은 정적 UI입니다. 실제 위치 계산은 다음 단계에서 붙입니다.</Text>
+          <Text style={styles.time}>{currentTrip.expectedArrival ?? "-"}</Text>
+          <Text style={styles.copy}>
+            상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+          </Text>
         </View>
       </Card>
     </Screen>

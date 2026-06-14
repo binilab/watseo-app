@@ -3,8 +3,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { CheckCircle2 } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { colors, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function PartialVerificationScreen() {
+  const status = getStatusDisplay("arrived_partial");
+
   return (
     <Screen
       footer={
@@ -15,7 +18,7 @@ export default function PartialVerificationScreen() {
         />
       }
     >
-      <StatusChip label="부분 인증" tone="pending" />
+      <StatusChip label={status.label} tone={status.tone} />
       <Text style={styles.title}>QR은 확인됐고, 마지막 확인만 남았어요</Text>
 
       <Card tone="warm">

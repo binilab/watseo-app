@@ -3,8 +3,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { Clock3, Send } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { colors, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function TimeExtensionScreen() {
+  const status = getStatusDisplay("extension_requested");
+
   return (
     <Screen
       footer={
@@ -22,7 +25,7 @@ export default function TimeExtensionScreen() {
         </View>
       }
     >
-      <StatusChip label="시간 연장 요청" tone="pending" />
+      <StatusChip label={status.label} tone={status.tone} />
       <Text style={styles.title}>조금 늦어질 것 같아요</Text>
       <Text style={styles.copy}>
         실제 알림 전송 없이, 확인 상대에게 도착 시간이 늦어진다는 메시지를 보내는 화면입니다.

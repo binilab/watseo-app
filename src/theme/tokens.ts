@@ -31,6 +31,11 @@ export const spacing = {
   xxxl: 40,
 } as const;
 
+export const TAB_BAR_HEIGHT = 76;
+export const TAB_BAR_BOTTOM_OFFSET = 12;
+export const TAB_CONTENT_BOTTOM_INSET =
+  TAB_BAR_HEIGHT + TAB_BAR_BOTTOM_OFFSET + spacing.xxxl;
+
 export const radius = {
   sm: 10,
   md: 16,

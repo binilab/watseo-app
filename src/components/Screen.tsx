@@ -8,24 +8,51 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { colors, spacing } from "@/src/theme/tokens";
+import {
+  colors,
+  spacing,
+  TAB_CONTENT_BOTTOM_INSET,
+} from "@/src/theme/tokens";
 
 type ScreenProps = {
   children: ReactNode;
   footer?: ReactNode;
   scroll?: boolean;
+  bottomInset?: number;
+  hasBottomTabs?: boolean;
 };
 
-export function Screen({ children, footer, scroll = true }: ScreenProps) {
+export function Screen({
+  children,
+  footer,
+  scroll = true,
+  bottomInset,
+  hasBottomTabs = true,
+}: ScreenProps) {
+  const resolvedBottomInset =
+    bottomInset ?? (hasBottomTabs ? TAB_CONTENT_BOTTOM_INSET : spacing.xxxl);
+  const contentStyle = [
+    styles.content,
+    { paddingBottom: resolvedBottomInset },
+  ];
+  const footerStyle = [
+    styles.footer,
+    {
+      paddingBottom: hasBottomTabs
+        ? TAB_CONTENT_BOTTOM_INSET
+        : spacing.xl,
+    },
+  ];
+
   const content = scroll ? (
     <ScrollView
-      contentContainerStyle={styles.content}
+      contentContainerStyle={contentStyle}
       showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.content, styles.staticContent]}>{children}</View>
+    <View style={[contentStyle, styles.staticContent]}>{children}</View>
   );
 
   return (
@@ -36,7 +63,7 @@ export function Screen({ children, footer, scroll = true }: ScreenProps) {
         style={styles.keyboard}
       >
         {content}
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
+        {footer ? <View style={footerStyle}>{footer}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -53,7 +80,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
-    paddingBottom: 116,
     gap: spacing.xl,
   },
   staticContent: {

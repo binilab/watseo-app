@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
+import type { StatusTone } from "@/src/types";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 type StatusChipProps = {
   label: string;
-  tone?: "active" | "pending" | "neutral" | "danger";
+  tone?: StatusTone;
 };
 
 export function StatusChip({ label, tone = "neutral" }: StatusChipProps) {

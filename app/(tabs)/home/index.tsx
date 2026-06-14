@@ -9,14 +9,17 @@ import {
   SectionHeader,
   StatusChip,
 } from "@/src/components";
-import { homeMetrics, quickActions } from "@/src/data/mock";
+import { currentTrip, defaultPlace, homeMetrics, quickActions } from "@/src/data/mock";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function HomeScreen() {
+  const status = getStatusDisplay(currentTrip.state);
+
   return (
     <Screen>
       <View style={styles.header}>
-        <StatusChip label="귀가 전" tone="neutral" />
+        <StatusChip label={status.label} tone={status.tone} />
         <Text style={styles.title}>오늘도 편하게 도착을 알려요</Text>
         <Text style={styles.description}>
           도착지와 확인 상대를 고른 뒤 귀가를 시작할 수 있어요.
@@ -30,7 +33,9 @@ export default function HomeScreen() {
           </View>
           <View style={styles.destinationCopy}>
             <Text style={styles.cardTitle}>기본 도착지</Text>
-            <Text style={styles.muted}>집 · 서울시 마포구 와우산로 12</Text>
+            <Text style={styles.muted}>
+              {defaultPlace.title} · {defaultPlace.address}
+            </Text>
           </View>
         </View>
         <AppButton
@@ -57,9 +62,7 @@ export default function HomeScreen() {
             icon={item.icon}
             key={item.title}
             onPress={() => {
-              if (item.title === "귀가 시작") router.push("/home/return-setup");
-              if (item.title === "QR 인증") router.push("/home/qr-arrival");
-              if (item.title === "도움 요청") router.push("/home/help-request");
+              if (item.route) router.push(item.route);
             }}
             title={item.title}
           />

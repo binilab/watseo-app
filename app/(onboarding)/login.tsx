@@ -7,6 +7,7 @@ import { colors, spacing, typography } from "@/src/theme/tokens";
 export default function LoginScreen() {
   return (
     <Screen
+      hasBottomTabs={false}
       footer={
         <View style={styles.footer}>
           <AppButton

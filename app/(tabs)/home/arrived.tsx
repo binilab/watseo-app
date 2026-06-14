@@ -3,8 +3,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { CheckCircle2, Clock3 } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function ArrivedScreen() {
+  const status = getStatusDisplay("arrived_verified");
+
   return (
     <Screen
       footer={
@@ -26,7 +29,7 @@ export default function ArrivedScreen() {
         <View style={styles.check}>
           <CheckCircle2 color={colors.primaryDark} size={62} strokeWidth={2.2} />
         </View>
-        <StatusChip label="도착 완료" tone="active" />
+        <StatusChip label={status.label} tone={status.tone} />
         <Text style={styles.title}>왔어요</Text>
         <Text style={styles.copy}>
           도착 확인이 완료되었고 알림 받을 사람에게 완료 상태가 전달되는 화면입니다.

@@ -4,17 +4,22 @@ import { Clock3, QrCode } from "lucide-react-native";
 import { AppButton, Card, ListItem, Screen, StatusChip } from "@/src/components";
 import { activeTimeline } from "@/src/data/mock";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { getStatusDisplay } from "@/src/types";
 
 export default function ActiveReturnScreen() {
+  const status = getStatusDisplay("on_the_way");
+
   return (
     <Screen>
       <Card tone="mint" style={styles.hero}>
-        <StatusChip label="귀가 중" tone="active" />
+        <StatusChip label={status.label} tone={status.tone} />
         <View style={styles.ring}>
           <Text style={styles.eta}>18분</Text>
           <Text style={styles.etaLabel}>예상 남은 시간</Text>
         </View>
-        <Text style={styles.description}>확인 상대 2명에게 귀가 중 상태가 표시되는 화면입니다.</Text>
+        <Text style={styles.description}>
+          상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+        </Text>
       </Card>
 
       <Card>

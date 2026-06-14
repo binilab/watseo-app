@@ -12,24 +12,64 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react-native";
+import type { AppRoute, Person, Place, QuickAction, Trip } from "@/src/types";
 
-export const connectedPeople = [
-  { name: "지민", role: "확인 상대", status: "알림 받을 준비 완료" },
-  { name: "민수", role: "연결된 사람", status: "오늘 20:40 확인" },
-  { name: "서연", role: "알림 받을 사람", status: "초대 수락 대기" },
+export const connectedPeople: Person[] = [
+  { id: "jimin", name: "지민", role: "확인 상대", status: "알림 받을 준비 완료", receivesAlerts: true },
+  { id: "minsu", name: "민수", role: "연결된 사람", status: "오늘 20:40 확인", receivesAlerts: true },
+  { id: "seoyeon", name: "서연", role: "알림 받을 사람", status: "초대 수락 대기", receivesAlerts: false },
 ];
 
-export const arrivalPlaces = [
-  { title: "집", address: "서울시 마포구 와우산로 12", tag: "기본 도착지" },
-  { title: "작업실", address: "서울시 성동구 왕십리로 20", tag: "QR 인증" },
-  { title: "친구 집", address: "서울시 용산구 한강대로 8", tag: "최근 사용" },
+export const arrivalPlaces: Place[] = [
+  { id: "home", title: "집", address: "서울시 마포구 와우산로 12", tag: "기본 도착지", isDefault: true },
+  { id: "studio", title: "작업실", address: "서울시 성동구 왕십리로 20", tag: "QR 인증" },
+  { id: "friend-home", title: "친구 집", address: "서울시 용산구 한강대로 8", tag: "최근 사용" },
 ];
 
-export const returnHistory = [
-  { title: "집 도착", time: "오늘 22:18", detail: "QR 인증 + 확인 상대 알림 완료" },
-  { title: "작업실 도착", time: "어제 21:04", detail: "도착 버튼으로 완료" },
-  { title: "집 도착", time: "6월 12일 23:11", detail: "시간 연장 후 완료" },
+export const trips: Trip[] = [
+  {
+    id: "tonight",
+    title: "집 도착",
+    placeId: "home",
+    state: "not_started",
+    verificationMethod: "none",
+    time: "오늘 예정",
+    detail: "귀가 시작 전",
+    expectedArrival: "22:30",
+  },
+  {
+    id: "today-home",
+    title: "집 도착",
+    placeId: "home",
+    state: "arrived_verified",
+    verificationMethod: "qr",
+    time: "오늘 22:18",
+    detail: "QR 인증 + 확인 상대 알림 완료",
+  },
+  {
+    id: "yesterday-studio",
+    title: "작업실 도착",
+    placeId: "studio",
+    state: "arrived_verified",
+    verificationMethod: "manual",
+    time: "어제 21:04",
+    detail: "도착 버튼으로 완료",
+  },
+  {
+    id: "june-12-home",
+    title: "집 도착",
+    placeId: "home",
+    state: "extension_requested",
+    verificationMethod: "manual",
+    time: "6월 12일 23:11",
+    detail: "시간 연장 후 완료",
+  },
 ];
+
+export const currentTrip = trips[0];
+export const defaultPlace = arrivalPlaces.find((place) => place.isDefault) ?? arrivalPlaces[0];
+export const alertRecipients = connectedPeople.filter((person) => person.receivesAlerts);
+export const returnHistory = trips.filter((trip) => trip.id !== currentTrip.id);
 
 export const permissionItems = [
   { icon: MapPin, title: "위치 접근", detail: "귀가 중 상태를 화면에 표시하기 위한 준비 항목" },
@@ -38,15 +78,15 @@ export const permissionItems = [
 ];
 
 export const homeMetrics = [
-  { label: "예상 도착", value: "22:30" },
-  { label: "확인 상대", value: "2명" },
-  { label: "도착지", value: "집" },
+  { label: "예상 도착", value: currentTrip.expectedArrival ?? "-" },
+  { label: "확인 상대", value: `${alertRecipients.length}명` },
+  { label: "도착지", value: defaultPlace.title },
 ];
 
-export const quickActions = [
-  { icon: Navigation, title: "귀가 시작", detail: "도착지와 확인 상대를 선택합니다." },
-  { icon: QrCode, title: "QR 인증", detail: "등록된 장소에서 도착을 확인합니다." },
-  { icon: MessageCircle, title: "도움 요청", detail: "연결된 사람에게 상황을 공유합니다." },
+export const quickActions: QuickAction[] = [
+  { icon: Navigation, title: "귀가 시작", detail: "도착지와 확인 상대를 선택합니다.", route: "/home/return-setup" },
+  { icon: QrCode, title: "QR 인증", detail: "등록된 장소에서 도착을 확인합니다.", route: "/home/qr-arrival" },
+  { icon: MessageCircle, title: "도움 요청", detail: "연결된 사람에게 상황을 공유합니다.", route: "/home/help-request" },
 ];
 
 export const dashboardCards = [
@@ -55,9 +95,13 @@ export const dashboardCards = [
   { icon: CalendarClock, title: "기록", detail: "최근 귀가 완료 내역을 확인해요." },
 ];
 
-export const roleOptions = [
-  { icon: UserRound, title: "도착을 공유할래요", detail: "내 귀가 상태를 연결된 사람에게 알려요." },
-  { icon: Home, title: "알림을 받을래요", detail: "소중한 사람의 도착 확인을 받아요." },
+type RoleOption = QuickAction & {
+  nextRoute: AppRoute;
+};
+
+export const roleOptions: RoleOption[] = [
+  { icon: UserRound, title: "도착을 공유할래요", detail: "내 귀가 상태를 연결된 사람에게 알려요.", nextRoute: "/permissions" },
+  { icon: Home, title: "알림을 받을래요", detail: "소중한 사람의 도착 확인을 받아요.", nextRoute: "/permissions" },
 ];
 
 export const activeTimeline = [
