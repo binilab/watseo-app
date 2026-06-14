@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
-import { colors, radius } from "@/src/theme/tokens";
+import { colors, radius, shadows } from "@/src/theme/tokens";
 
 export default function TabLayout() {
   return (
@@ -14,14 +14,20 @@ export default function TabLayout() {
           fontWeight: "700",
         },
         tabBarStyle: {
-          height: 74,
-          paddingTop: 8,
-          paddingBottom: 12,
+          height: 76,
+          left: 18,
+          right: 18,
+          bottom: 12,
+          paddingTop: 9,
+          paddingBottom: 11,
           borderTopWidth: 0,
-          borderTopLeftRadius: radius.lg,
-          borderTopRightRadius: radius.lg,
+          borderRadius: radius.xl,
           backgroundColor: colors.surface,
           position: "absolute",
+          ...shadows.floating,
+        },
+        tabBarItemStyle: {
+          borderRadius: radius.lg,
         },
       }}
     >

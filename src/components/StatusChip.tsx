@@ -31,7 +31,7 @@ export function StatusChip({ label, tone = "neutral" }: StatusChipProps) {
 const styles = StyleSheet.create({
   chip: {
     alignSelf: "flex-start",
-    minHeight: 32,
+    minHeight: 30,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     alignItems: "center",
@@ -39,8 +39,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   dot: {
-    width: 7,
-    height: 7,
+    width: 6,
+    height: 6,
     borderRadius: radius.pill,
   },
   label: {

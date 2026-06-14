@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { colors, radius, shadows, spacing, typography } from "@/src/theme/tokens";
 
 type IconComponent = ComponentType<{
   color?: string;
@@ -105,9 +105,12 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: colors.primary,
+    ...shadows.floating,
   },
   secondary: {
     backgroundColor: colors.surfaceMint,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   ghost: {
     backgroundColor: "transparent",

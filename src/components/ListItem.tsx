@@ -45,7 +45,7 @@ export function ListItem({ title, detail, meta, icon: Icon, onPress }: ListItemP
 
 const styles = StyleSheet.create({
   item: {
-    minHeight: 68,
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
@@ -55,8 +55,8 @@ const styles = StyleSheet.create({
     opacity: 0.68,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",

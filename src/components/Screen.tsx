@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: 116,
+    gap: spacing.xl,
   },
   staticContent: {
     flex: 1,
@@ -63,7 +63,5 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingTop: spacing.md,
     backgroundColor: colors.background,
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

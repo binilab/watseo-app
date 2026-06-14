@@ -28,6 +28,12 @@ export default function PermissionsScreen() {
         </View>
       </Card>
 
+      <Card tone="blue">
+        <Text style={styles.privacy}>
+          상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+        </Text>
+      </Card>
+
       <Card>
         {permissionItems.map((item) => (
           <ListItem
@@ -53,5 +59,9 @@ const styles = StyleSheet.create({
   copy: {
     ...typography.body,
     color: colors.textMuted,
+  },
+  privacy: {
+    ...typography.body,
+    color: colors.primaryDark,
   },
 });

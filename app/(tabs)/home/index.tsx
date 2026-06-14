@@ -23,7 +23,7 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <Card tone="mint">
+      <Card tone="mint" style={styles.primaryCard}>
         <View style={styles.destinationRow}>
           <View style={styles.destinationIcon}>
             <MapPin color={colors.primaryDark} size={28} strokeWidth={2.5} />
@@ -79,6 +79,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   header: {
     gap: spacing.md,
+    paddingTop: spacing.sm,
   },
   title: {
     ...typography.title,
@@ -94,8 +95,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   destinationIcon: {
-    width: 58,
-    height: 58,
+    width: 62,
+    height: 62,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -116,6 +117,9 @@ const styles = StyleSheet.create({
   metrics: {
     flexDirection: "row",
     gap: spacing.sm,
+  },
+  primaryCard: {
+    gap: spacing.lg,
   },
   metricCard: {
     flex: 1,

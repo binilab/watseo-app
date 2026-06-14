@@ -54,15 +54,16 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: "center",
     gap: spacing.xl,
+    paddingVertical: spacing.xxl,
   },
   ring: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
+    width: 204,
+    height: 204,
+    borderRadius: 102,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.white,
-    borderWidth: 14,
+    borderWidth: 13,
     borderColor: colors.primarySoft,
   },
   eta: {

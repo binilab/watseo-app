@@ -41,7 +41,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: spacing.lg,
-    paddingTop: spacing.xxxl,
+    paddingTop: 56,
   },
   mark: {
     width: 88,
