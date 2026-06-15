@@ -240,6 +240,37 @@ begin
   end if;
 end $$;
 
+create or replace function public.is_valid_notification_payload(input_payload jsonb)
+returns boolean
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+    when jsonb_typeof(input_payload) <> 'object' then false
+    else not exists (
+      select 1
+      from jsonb_each(input_payload) as payload_item(key, value)
+      where payload_item.key <> all (
+        array[
+          'destination_name',
+          'state',
+          'previous_state',
+          'notification_type',
+          'trip_id',
+          'message'
+        ]
+      )
+      or jsonb_typeof(payload_item.value) not in (
+        'string',
+        'number',
+        'boolean',
+        'null'
+      )
+    )
+  end;
+$$;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id),
   display_name text not null,
@@ -259,24 +290,29 @@ create table if not exists public.relationships (
   status public.relationship_status not null default 'pending',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint relationships_not_self check (requester_id <> recipient_id),
-  constraint relationships_unique_pair unique (requester_id, recipient_id)
+  constraint relationships_not_self check (requester_id <> recipient_id)
 );
 
 create table if not exists public.connection_invites (
   id uuid primary key default gen_random_uuid(),
   inviter_id uuid not null references public.profiles(id),
-  invite_token uuid not null default gen_random_uuid(),
+  token_hash text not null,
   relationship_type public.relationship_type not null default 'other',
   status public.invite_status not null default 'pending',
   accepted_by uuid references public.profiles(id),
   accepted_at timestamptz,
-  expires_at timestamptz,
+  expires_at timestamptz not null default (now() + interval '7 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint connection_invites_token_unique unique (invite_token),
+  constraint connection_invites_token_hash_unique unique (token_hash),
+  constraint connection_invites_token_hash_format check (
+    token_hash ~ '^[a-f0-9]{64}$'
+  ),
   constraint connection_invites_not_self check (
     accepted_by is null or accepted_by <> inviter_id
+  ),
+  constraint connection_invites_expires_after_created check (
+    expires_at > created_at
   )
 );
 
@@ -319,6 +355,7 @@ create table if not exists public.trip_recipients (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references public.trips(id),
   recipient_id uuid not null references public.profiles(id),
+  relationship_id uuid not null references public.relationships(id),
   added_by uuid not null references public.profiles(id),
   notification_enabled boolean not null default true,
   created_at timestamptz not null default now(),
@@ -377,26 +414,16 @@ create table if not exists public.notification_events (
   payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   delivered_at timestamptz,
-  constraint notification_events_payload_object check (
-    jsonb_typeof(payload) = 'object'
-  ),
-  constraint notification_events_payload_no_sensitive_location check (
-    not (
-      payload ?| array[
-        'address',
-        'destination_address',
-        'latitude',
-        'longitude',
-        'coordinates',
-        'route',
-        'path',
-        'movement_path',
-        'location_history'
-      ]
-    )
+  constraint notification_events_payload_allowed check (
+    public.is_valid_notification_payload(payload)
   )
 );
 
+create unique index if not exists relationships_symmetric_pair_unique_idx
+  on public.relationships (
+    least(requester_id, recipient_id),
+    greatest(requester_id, recipient_id)
+  );
 create index if not exists relationships_requester_id_idx
   on public.relationships(requester_id);
 create index if not exists relationships_recipient_id_idx
@@ -406,8 +433,8 @@ create index if not exists relationships_status_idx
 
 create index if not exists connection_invites_inviter_id_idx
   on public.connection_invites(inviter_id);
-create index if not exists connection_invites_token_idx
-  on public.connection_invites(invite_token);
+create index if not exists connection_invites_token_hash_idx
+  on public.connection_invites(token_hash);
 create index if not exists connection_invites_status_idx
   on public.connection_invites(status);
 
@@ -427,6 +454,8 @@ create index if not exists trip_recipients_trip_id_idx
   on public.trip_recipients(trip_id);
 create index if not exists trip_recipients_recipient_id_idx
   on public.trip_recipients(recipient_id);
+create index if not exists trip_recipients_relationship_id_idx
+  on public.trip_recipients(relationship_id);
 
 create index if not exists arrival_verifications_trip_id_idx
   on public.arrival_verifications(trip_id);
@@ -452,13 +481,55 @@ create index if not exists notification_events_recipient_id_idx
 create index if not exists notification_events_type_idx
   on public.notification_events(type);
 
-create or replace function public.set_updated_at()
+create or replace function public.watseo_set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
   return new;
+end;
+$$;
+
+create or replace function public.validate_relationship_update()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  current_user_id uuid := (select auth.uid());
+begin
+  if new.requester_id <> old.requester_id
+    or new.recipient_id <> old.recipient_id
+    or new.relationship_type <> old.relationship_type
+  then
+    raise exception 'relationship participants and type are immutable';
+  end if;
+
+  if current_user_id is null then
+    raise exception 'authenticated user is required';
+  end if;
+
+  if current_user_id = old.requester_id then
+    if old.status = 'pending' and new.status = 'cancelled' then
+      return new;
+    end if;
+
+    raise exception 'requester can only cancel a pending relationship';
+  end if;
+
+  if current_user_id = old.recipient_id then
+    if old.status = 'pending'
+      and new.status in ('accepted', 'declined', 'blocked')
+    then
+      return new;
+    end if;
+
+    raise exception 'recipient can only respond to a pending relationship';
+  end if;
+
+  raise exception 'relationship update is not allowed';
 end;
 $$;
 
@@ -517,6 +588,179 @@ as $$
   );
 $$;
 
+create or replace function public.is_accepted_relationship_between(
+  input_relationship_id uuid,
+  input_user_a uuid,
+  input_user_b uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.relationships r
+    where r.id = input_relationship_id
+      and r.status = 'accepted'
+      and (
+        (r.requester_id = input_user_a and r.recipient_id = input_user_b)
+        or (r.requester_id = input_user_b and r.recipient_id = input_user_a)
+      )
+  );
+$$;
+
+create or replace function public.is_valid_trip_recipient(
+  input_trip_id uuid,
+  input_recipient_id uuid,
+  input_relationship_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.trips t
+    where t.id = input_trip_id
+      and public.is_accepted_relationship_between(
+        input_relationship_id,
+        t.owner_id,
+        input_recipient_id
+      )
+  );
+$$;
+
+create or replace function public.validate_trip_recipient()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  trip_owner_id uuid;
+begin
+  select t.owner_id
+  into trip_owner_id
+  from public.trips t
+  where t.id = new.trip_id;
+
+  if trip_owner_id is null then
+    raise exception 'trip does not exist';
+  end if;
+
+  if new.added_by <> trip_owner_id then
+    raise exception 'trip recipient must be added by the trip owner';
+  end if;
+
+  if not public.is_accepted_relationship_between(
+    new.relationship_id,
+    trip_owner_id,
+    new.recipient_id
+  ) then
+    raise exception 'trip recipient must have an accepted relationship with the trip owner';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.accept_connection_invite(invite_token text)
+returns table (
+  invite_id uuid,
+  relationship_id uuid
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := (select auth.uid());
+  hashed_token text;
+  invite_record public.connection_invites%rowtype;
+  existing_relationship record;
+  created_relationship_id uuid;
+begin
+  if current_user_id is null then
+    raise exception 'authenticated user is required';
+  end if;
+
+  if invite_token is null or btrim(invite_token) = '' then
+    raise exception 'invite token is required';
+  end if;
+
+  hashed_token := encode(digest(invite_token, 'sha256'), 'hex');
+
+  select ci.*
+  into invite_record
+  from public.connection_invites ci
+  where ci.token_hash = hashed_token
+    and ci.status = 'pending'
+    and ci.accepted_by is null
+    and ci.expires_at > now()
+  for update;
+
+  if not found then
+    raise exception 'invite is not available';
+  end if;
+
+  if invite_record.inviter_id = current_user_id then
+    raise exception 'inviter cannot accept their own invite';
+  end if;
+
+  select r.id, r.status, r.requester_id, r.recipient_id
+  into existing_relationship
+  from public.relationships r
+  where least(r.requester_id, r.recipient_id)
+    = least(invite_record.inviter_id, current_user_id)
+    and greatest(r.requester_id, r.recipient_id)
+    = greatest(invite_record.inviter_id, current_user_id)
+  limit 1
+  for update;
+
+  if found then
+    if existing_relationship.status = 'accepted' then
+      created_relationship_id := existing_relationship.id;
+    elsif existing_relationship.status = 'pending'
+      and existing_relationship.requester_id = invite_record.inviter_id
+      and existing_relationship.recipient_id = current_user_id
+    then
+      update public.relationships r
+      set status = 'accepted'
+      where r.id = existing_relationship.id
+      returning r.id into created_relationship_id;
+    else
+      raise exception 'relationship already exists and cannot be accepted by this invite';
+    end if;
+  else
+    insert into public.relationships (
+      requester_id,
+      recipient_id,
+      relationship_type,
+      status
+    )
+    values (
+      invite_record.inviter_id,
+      current_user_id,
+      invite_record.relationship_type,
+      'accepted'
+    )
+    returning id into created_relationship_id;
+  end if;
+
+  update public.connection_invites ci
+  set status = 'accepted',
+      accepted_by = current_user_id,
+      accepted_at = now()
+  where ci.id = invite_record.id;
+
+  return query
+  select invite_record.id, created_relationship_id;
+end;
+$$;
+
 do $$
 begin
   if not exists (
@@ -526,7 +770,7 @@ begin
   ) then
     create trigger set_profiles_updated_at
       before update on public.profiles
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
   end if;
 
   if not exists (
@@ -536,7 +780,17 @@ begin
   ) then
     create trigger set_relationships_updated_at
       before update on public.relationships
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
+  end if;
+
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgname = 'validate_relationship_update'
+  ) then
+    create trigger validate_relationship_update
+      before update on public.relationships
+      for each row execute function public.validate_relationship_update();
   end if;
 
   if not exists (
@@ -546,7 +800,7 @@ begin
   ) then
     create trigger set_connection_invites_updated_at
       before update on public.connection_invites
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
   end if;
 
   if not exists (
@@ -556,7 +810,7 @@ begin
   ) then
     create trigger set_destinations_updated_at
       before update on public.destinations
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
   end if;
 
   if not exists (
@@ -566,7 +820,17 @@ begin
   ) then
     create trigger set_trips_updated_at
       before update on public.trips
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
+  end if;
+
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgname = 'validate_trip_recipient'
+  ) then
+    create trigger validate_trip_recipient
+      before insert or update on public.trip_recipients
+      for each row execute function public.validate_trip_recipient();
   end if;
 
   if not exists (
@@ -576,7 +840,7 @@ begin
   ) then
     create trigger set_time_extension_requests_updated_at
       before update on public.time_extension_requests
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
   end if;
 
   if not exists (
@@ -586,7 +850,7 @@ begin
   ) then
     create trigger set_help_requests_updated_at
       before update on public.help_requests
-      for each row execute function public.set_updated_at();
+      for each row execute function public.watseo_set_updated_at();
   end if;
 
   if not exists (
@@ -685,25 +949,48 @@ begin
     create policy relationships_insert_requester
       on public.relationships
       for insert
-      with check (requester_id = (select auth.uid()));
+      with check (
+        requester_id = (select auth.uid())
+        and recipient_id <> (select auth.uid())
+        and status = 'pending'
+      );
   end if;
 
   if not exists (
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'relationships'
-      and policyname = 'relationships_update_participant'
+      and policyname = 'relationships_update_requester_cancel_pending'
   ) then
-    create policy relationships_update_participant
+    create policy relationships_update_requester_cancel_pending
       on public.relationships
       for update
       using (
         requester_id = (select auth.uid())
-        or recipient_id = (select auth.uid())
+        and status = 'pending'
       )
       with check (
         requester_id = (select auth.uid())
-        or recipient_id = (select auth.uid())
+        and status = 'cancelled'
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'relationships'
+      and policyname = 'relationships_update_recipient_respond_pending'
+  ) then
+    create policy relationships_update_recipient_respond_pending
+      on public.relationships
+      for update
+      using (
+        recipient_id = (select auth.uid())
+        and status = 'pending'
+      )
+      with check (
+        recipient_id = (select auth.uid())
+        and status in ('accepted', 'declined', 'blocked')
       );
   end if;
 
@@ -731,25 +1018,33 @@ begin
     create policy connection_invites_insert_inviter
       on public.connection_invites
       for insert
-      with check (inviter_id = (select auth.uid()));
+      with check (
+        inviter_id = (select auth.uid())
+        and status = 'pending'
+        and accepted_by is null
+        and accepted_at is null
+        and expires_at > now()
+      );
   end if;
 
   if not exists (
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'connection_invites'
-      and policyname = 'connection_invites_update_involved'
+      and policyname = 'connection_invites_update_inviter_cancel_pending'
   ) then
-    create policy connection_invites_update_involved
+    create policy connection_invites_update_inviter_cancel_pending
       on public.connection_invites
       for update
       using (
         inviter_id = (select auth.uid())
-        or accepted_by = (select auth.uid())
+        and status = 'pending'
       )
       with check (
         inviter_id = (select auth.uid())
-        or accepted_by = (select auth.uid())
+        and status = 'cancelled'
+        and accepted_by is null
+        and accepted_at is null
       );
   end if;
 
@@ -857,6 +1152,11 @@ begin
       with check (
         added_by = (select auth.uid())
         and public.is_trip_owner(trip_id)
+        and public.is_valid_trip_recipient(
+          trip_id,
+          recipient_id,
+          relationship_id
+        )
       );
   end if;
 
@@ -870,7 +1170,14 @@ begin
       on public.trip_recipients
       for update
       using (public.is_trip_owner(trip_id))
-      with check (public.is_trip_owner(trip_id));
+      with check (
+        public.is_trip_owner(trip_id)
+        and public.is_valid_trip_recipient(
+          trip_id,
+          recipient_id,
+          relationship_id
+        )
+      );
   end if;
 
   if not exists (
@@ -992,7 +1299,6 @@ begin
       using (
         recipient_id = (select auth.uid())
         or actor_id = (select auth.uid())
-        or (trip_id is not null and public.is_trip_participant(trip_id))
       );
   end if;
 
@@ -1021,31 +1327,41 @@ commit;
 ## RLS Policy Summary
 
 - `profiles`: users can insert/update their own profile; self and accepted connected people can read limited profile rows.
-- `relationships`: only requester/recipient can read or update relationship rows; requester can create.
-- `connection_invites`: inviter can create and read; inviter or accepted user can update. Public token lookup is not opened in this draft.
+- `relationships`: requester/recipient can read. Requester can create only `pending` rows and can only cancel pending rows. Recipient can respond to pending rows with `accepted`, `declined`, or `blocked`.
+- `connection_invites`: inviter can create/read and can cancel pending invites. Invite acceptance is handled by `accept_connection_invite(invite_token text)` instead of direct table update.
 - `destinations`: only the owner can read, create, or update.
 - `trips`: owner can create/update; owner and selected recipients can read.
-- `trip_recipients`: trip owner can add/update recipients; owner and selected recipient can read.
+- `trip_recipients`: trip owner can add/update recipients only when `relationship_id` proves an accepted relationship between owner and recipient; owner and selected recipient can read.
 - `arrival_verifications`: trip owner can create QR/location verification records; trip participants can read.
 - `time_extension_requests`: trip owner can request; trip participants can read/update request status.
 - `help_requests`: trip owner can create; trip participants can read/update acknowledgement/status.
-- `notification_events`: recipient, actor, and trip participants can read; trip owner/actor can insert records.
+- `notification_events`: recipient or actor can read; trip owner/actor can insert records.
+
+## Claude Review Items Reflected
+
+- Relationship self-acceptance blocked: requester cannot update pending rows to `accepted`; only recipient response is allowed, and a trigger validates the transition.
+- Payload blacklist replaced: `notification_events.payload` now uses an allowed-key whitelist and rejects nested objects/arrays.
+- Invite acceptance RPC added: `accept_connection_invite(invite_token text)` hashes the raw token and compares it with `connection_invites.token_hash`.
+- Trip recipient validation strengthened: `trip_recipients.relationship_id` must point to an accepted relationship between trip owner and recipient.
+- Notification event select narrowed: participants no longer see all notifications for the same trip; read access is limited to recipient or actor.
+- Invite expiry strengthened: `connection_invites.expires_at` is not null and defaults to `now() + interval '7 days'`.
+- Relationship symmetric uniqueness added: `relationships_symmetric_pair_unique_idx` uses `least(requester_id, recipient_id)` and `greatest(requester_id, recipient_id)`.
+- Updated-at trigger function hardened: `public.watseo_set_updated_at()` has `set search_path = public`.
 
 ## Risks Before Applying
 
-- Link invite acceptance may need an RPC later because public token lookup is not exposed directly through table RLS.
-- `notification_events.payload` blocks sensitive top-level keys, but nested JSON keys are not fully blocked by this draft constraint.
+- Invite creation must generate a raw token in the app or server layer, store only `encode(digest(raw_token, 'sha256'), 'hex')`, and show the raw token only in the invite link.
+- `accept_connection_invite(invite_token text)` is included as a draft RPC, but app flow and error handling still need integration design.
 - `arrival_verifications` includes `location` as a future enum value, but v1 app logic should only create `qr_code` records.
 - `arrived_verified` exists in `app_state` for the shared state model, but v1 should normally use `arrived_partial` after QR success.
 - The profile trigger writes a default Korean display name when auth metadata is missing; confirm this is acceptable.
-- The `relationships_unique_pair` constraint treats A-to-B and B-to-A as different pairs. If symmetric uniqueness is required, this needs a generated normalized pair or a unique expression index.
 - No row removal policies are defined for user tables. Cancellation/status transitions should be used instead.
+- `notification_events.payload` is limited to primitive JSON values for approved keys, but exact payload shape per notification type still needs app-level validation.
 
 ## Questions To Confirm
 
-1. Should `connection_invites` support unauthenticated invite preview by token, or only authenticated acceptance through an RPC later?
-2. Should `relationships` enforce symmetric uniqueness so the same two users cannot create both A-to-B and B-to-A rows?
-3. Is storing only `destinations.name` enough for v1, or do we need a non-sensitive label such as building nickname/floor-free place label?
-4. Should recipients be allowed to acknowledge `help_requests`, or should acknowledgement be restricted to selected recipients only through stricter policy?
-5. Should `notification_events.payload` be restricted to a fixed shape such as only `destination_name` and `state`?
-6. Should v1 hide `arrived_verified` from writable app flows until location verification is added in v1.5?
+1. Should invite preview by token be supported before login, or should token handling start only after authentication?
+2. Is storing only `destinations.name` enough for v1, or do we need a non-sensitive label such as building nickname/floor-free place label?
+3. Should recipients be allowed to acknowledge `help_requests`, or should acknowledgement be restricted to selected recipients only through stricter policy?
+4. Should each `notification_events.type` have a stricter payload contract beyond the shared whitelist?
+5. Should v1 hide `arrived_verified` from writable app flows until location verification is added in v1.5?
