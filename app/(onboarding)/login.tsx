@@ -44,12 +44,13 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState<"signIn" | "signUp" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isStartingOnboarding, setIsStartingOnboarding] = useState(false);
 
   useEffect(() => {
-    if (session) {
+    if (session && !isStartingOnboarding) {
       router.replace("/home");
     }
-  }, [session]);
+  }, [isStartingOnboarding, session]);
 
   const trimmedEmail = email.trim();
   const canSubmit = Boolean(trimmedEmail && password && !submitting && !sessionLoading);
@@ -85,6 +86,7 @@ export default function LoginScreen() {
     }
 
     setSubmitting("signUp");
+    setIsStartingOnboarding(true);
     setMessage(null);
 
     const { error } = await supabase.auth.signUp({
@@ -95,12 +97,16 @@ export default function LoginScreen() {
     setSubmitting(null);
 
     if (error) {
+      setIsStartingOnboarding(false);
       setMessage(getAuthMessage(error.message, "signUp"));
       return;
     }
 
     // profiles row creation is handled by the DB trigger handle_new_user_profile.
-    router.replace("/home");
+    router.replace({
+      pathname: "/role",
+      params: { from: "signup" },
+    });
   }
 
   return (

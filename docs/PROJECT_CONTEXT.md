@@ -37,10 +37,15 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 ## Not Implemented Yet
 
 - 전체 route guard
+- persisted onboarding state
 - relationships/trips 실제 DB 연결
 - 실제 QR 스캔
 - 실제 위치 권한
 - 실제 푸시 알림
+
+## TODO
+
+- 추후 migration에서 `profiles.onboarding_completed`, `profiles.permissions_seen` 같은 온보딩 상태 컬럼이 필요한지 검토한다.
 
 ## Language Rules
 

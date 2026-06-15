@@ -43,6 +43,15 @@
     - 이메일/비밀번호 로그인 및 회원가입 연결
     - AsyncStorage 기반 session 저장
     - 기본 로그아웃 동작 추가
+20. Auth 수동 테스트를 완료했다.
+    - 회원가입 성공
+    - 로그인 성공
+    - 로그아웃 성공
+    - `profiles` row 자동 생성 확인
+21. 회원가입 후 온보딩 흐름을 정리했다.
+    - 회원가입 성공 후 `/role`로 이동
+    - 로그인 성공 후 `/home`으로 이동 유지
+    - `/role` -> `/permissions` -> `/home` 흐름 확인
 
 ## Current Issue
 
@@ -61,15 +70,17 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 진행 전 확인할 작업은 다음과 같다.
 
 1. 로그인 상태에 따른 route guard 설계
-2. Auth 이후 onboarding 흐름 정리
+2. 온보딩 완료 상태 저장 방식 설계
 3. invite token 생성/해시 저장 흐름 설계
 4. relationships/trips 실제 DB 연결 전 mock data 경계 정리
 
 ## Auth Manual Test Checklist
 
 - `/login`은 로그인 전 접근 가능해야 한다.
-- 이메일/비밀번호 회원가입 성공 시 `/home`으로 이동해야 한다.
+- 이메일/비밀번호 회원가입 성공 시 `/role`로 이동해야 한다.
 - 이메일/비밀번호 로그인 성공 시 `/home`으로 이동해야 한다.
+- `/role`에서 선택 후 `/permissions`로 이동해야 한다.
+- `/permissions`에서 완료 후 `/home`으로 이동해야 한다.
 - `/home`에서 로그아웃 성공 시 `/login`으로 이동해야 한다.
 - Auth 에러는 Supabase 원문 대신 사용자에게 자연스러운 문구로 보여야 한다.
 - 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 생성한다.
