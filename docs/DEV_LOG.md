@@ -36,10 +36,17 @@
     - RLS 활성화 완료
 18. Supabase TypeScript 타입을 저장했다.
     - `src/types/supabase.ts`
+19. Supabase Auth 기본 연결을 추가했다.
+    - `src/lib/supabase.ts`
+    - `src/features/auth/useAuthSession.ts`
+    - `.env.example`
+    - 이메일/비밀번호 로그인 및 회원가입 연결
+    - AsyncStorage 기반 session 저장
+    - 기본 로그아웃 동작 추가
 
 ## Current Issue
 
-Supabase v1 schema migration 적용은 완료했다.
+Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 
 - 옛 project ref: `ampgpgsciwkfkjpumtrb`
 - 이 프로젝트는 적용 대상이 아니다.
@@ -49,11 +56,11 @@ Supabase v1 schema migration 적용은 완료했다.
 
 ## Next Step
 
-다음 단계는 Supabase client/Auth 연결이다.
+다음 단계는 Auth route guard와 실제 데이터 흐름 연결이다.
 
 진행 전 확인할 작업은 다음과 같다.
 
-1. Supabase client 설정 위치 결정
-2. Auth 화면과 mock UI 경계 정리
+1. 로그인 상태에 따른 route guard 설계
+2. Auth 이후 onboarding 흐름 정리
 3. invite token 생성/해시 저장 흐름 설계
-4. `src/types/supabase.ts` 타입을 client 코드에 연결
+4. relationships/trips 실제 DB 연결 전 mock data 경계 정리

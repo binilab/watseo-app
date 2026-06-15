@@ -12,7 +12,9 @@
 
 Stitch 기반 UI 스켈레톤 구현 완료.
 
-현재는 Supabase, 실제 QR 스캔, 위치 권한, 푸시 알림을 붙이기 전 단계이며, 화면 구조와 타입 모델을 먼저 안정화한 상태다.
+Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
+
+현재는 실제 QR 스캔, 위치 권한, 푸시 알림을 붙이기 전 단계이며, 화면 구조와 타입 모델을 안정화하면서 Auth 이후 흐름을 준비하는 상태다.
 
 ## Implemented
 
@@ -25,11 +27,17 @@ Stitch 기반 UI 스켈레톤 구현 완료.
 - mock data
 - 하단 탭바 겹침 수정
 - 탭 재진입 시 스크롤 초기화
+- Supabase v1 schema migration
+- Supabase TypeScript 타입
+- Supabase client 기본 설정
+- 이메일/비밀번호 로그인 및 회원가입
+- AsyncStorage 기반 Auth session 저장
+- 기본 로그아웃 동작
 
 ## Not Implemented Yet
 
-- Supabase Auth
-- 실제 DB 연결
+- 전체 route guard
+- relationships/trips 실제 DB 연결
 - 실제 QR 스캔
 - 실제 위치 권한
 - 실제 푸시 알림
@@ -54,4 +62,3 @@ Stitch 기반 UI 스켈레톤 구현 완료.
 ## Privacy Principle
 
 상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
-

@@ -22,6 +22,8 @@ Supabase 작업은 MCP로 진행할 예정이다.
 - local migration file: `supabase/migrations/20260615_watseo_v1_schema.sql`
 - TypeScript types: `src/types/supabase.ts`
 - RLS: public table 10개 모두 활성화 완료
+- Auth client: `src/lib/supabase.ts`
+- Auth session hook: `src/features/auth/useAuthSession.ts`
 
 ## Required Checks Before Migration
 
@@ -102,3 +104,14 @@ Supabase v1 schema migration 적용 완료.
 The initial v1 schema migration has been applied to `zknuyyknmxgrjuipdysf`.
 
 Future migrations still require explicit user approval before running `apply_migration`.
+
+## Auth Integration
+
+기본 Supabase Auth 연결을 앱 코드에 추가했다.
+
+- 앱에는 Supabase URL과 anon key만 사용한다.
+- `.env.example`에는 placeholder만 둔다.
+- 실제 `.env`는 Git 추적 대상에서 제외한다.
+- React Native session 저장은 AsyncStorage를 사용한다.
+- 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 자동 생성한다.
+- 앱에서 `profiles`를 직접 insert하지 않는다.

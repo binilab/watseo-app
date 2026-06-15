@@ -1,6 +1,7 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { MapPin, Navigation, QrCode } from "lucide-react-native";
+import { LogOut, MapPin, Navigation, QrCode } from "lucide-react-native";
 import {
   AppButton,
   Card,
@@ -10,11 +11,31 @@ import {
   StatusChip,
 } from "@/src/components";
 import { currentTrip, defaultPlace, homeMetrics, quickActions } from "@/src/data/mock";
+import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
 export default function HomeScreen() {
   const status = getStatusDisplay(currentTrip.state);
+  const { signOut, user } = useAuthSession();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    setSignOutMessage(null);
+
+    const { error } = await signOut();
+
+    setSigningOut(false);
+
+    if (error) {
+      setSignOutMessage(error.message);
+      return;
+    }
+
+    router.replace("/login");
+  }
 
   return (
     <Screen>
@@ -75,6 +96,19 @@ export default function HomeScreen() {
         title="도착 QR 보기"
         variant="secondary"
       />
+
+      {user ? (
+        <View style={styles.accountActions}>
+          {signOutMessage ? <Text style={styles.signOutMessage}>{signOutMessage}</Text> : null}
+          <AppButton
+            icon={LogOut}
+            loading={signingOut}
+            onPress={handleSignOut}
+            title="로그아웃"
+            variant="ghost"
+          />
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -135,5 +169,13 @@ const styles = StyleSheet.create({
   metricLabel: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  accountActions: {
+    gap: spacing.sm,
+  },
+  signOutMessage: {
+    ...typography.caption,
+    color: colors.danger,
+    textAlign: "center",
   },
 });
