@@ -115,3 +115,40 @@ Future migrations still require explicit user approval before running `apply_mig
 - React Native session 저장은 AsyncStorage를 사용한다.
 - 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 자동 생성한다.
 - 앱에서 `profiles`를 직접 insert하지 않는다.
+
+## Applied Onboarding State Migration
+
+온보딩 완료 상태는 로컬 AsyncStorage가 아니라 `profiles` 테이블에 저장한다.
+
+이유:
+
+- 계정 기반 상태이므로 앱 삭제, 기기 변경, 재로그인 후에도 유지되어야 한다.
+- 사용자는 귀가하는 사람과 확인 상대 역할을 모두 가질 수 있으므로 v1에서는 고정 role 컬럼을 만들지 않는다.
+- 역할 선택값은 v1에서 DB에 저장하지 않는다.
+
+Applied migration:
+
+- `supabase/migrations/20260615_add_onboarding_state_to_profiles.sql`
+
+Applied columns:
+
+- `profiles.onboarding_completed boolean not null default false`
+- `profiles.onboarding_completed_at timestamptz`
+- `profiles.permissions_seen boolean not null default false`
+- `profiles.permissions_seen_at timestamptz`
+
+RLS review:
+
+- 기존 `profiles_update_own` 정책으로 본인 row update가 가능하다.
+- 새 정책은 필요하지 않다.
+- `src/types/supabase.ts`에 온보딩 컬럼 타입을 반영했다.
+
+Route design after migration:
+
+- 회원가입 성공: `/role`
+- `/role` 선택 후: `/permissions`
+- `/permissions` 완료 시 `profiles` 온보딩 상태 update 후 `/home`
+- 로그인 성공: `profiles.onboarding_completed` 조회
+  - `true`: `/home`
+  - `false`: `/role`
+- 전체 route guard는 별도 단계에서 설계한다.

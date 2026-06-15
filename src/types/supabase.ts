@@ -278,6 +278,10 @@ export type Database = {
           created_at: string;
           display_name: string;
           id: string;
+          onboarding_completed: boolean;
+          onboarding_completed_at: string | null;
+          permissions_seen: boolean;
+          permissions_seen_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -285,6 +289,10 @@ export type Database = {
           created_at?: string;
           display_name: string;
           id: string;
+          onboarding_completed?: boolean;
+          onboarding_completed_at?: string | null;
+          permissions_seen?: boolean;
+          permissions_seen_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -292,6 +300,10 @@ export type Database = {
           created_at?: string;
           display_name?: string;
           id?: string;
+          onboarding_completed?: boolean;
+          onboarding_completed_at?: string | null;
+          permissions_seen?: boolean;
+          permissions_seen_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];

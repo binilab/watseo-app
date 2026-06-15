@@ -1,19 +1,48 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CheckCircle2 } from "lucide-react-native";
 import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
 import { permissionItems } from "@/src/data/mock";
+import { completeOnboarding } from "@/src/features/auth/onboarding";
+import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 
 export default function PermissionsScreen() {
+  const { user } = useAuthSession();
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function finishOnboarding() {
+    if (!user) {
+      setMessage("로그인 후 온보딩을 완료할 수 있어요.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    const { error } = await completeOnboarding(user.id);
+
+    setSaving(false);
+
+    if (error) {
+      setMessage("온보딩 상태를 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    router.replace("/home");
+  }
+
   return (
     <Screen
       hasBottomTabs={false}
       footer={
         <AppButton
           icon={CheckCircle2}
-          onPress={() => router.replace("/home")}
-          title="홈으로 이동"
+          loading={saving}
+          onPress={finishOnboarding}
+          title="완료하고 홈으로 이동"
         />
       }
     >
@@ -34,6 +63,12 @@ export default function PermissionsScreen() {
           상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
         </Text>
       </Card>
+
+      {message ? (
+        <Card tone="warm">
+          <Text style={styles.message}>{message}</Text>
+        </Card>
+      ) : null}
 
       <Card>
         {permissionItems.map((item) => (
@@ -64,5 +99,9 @@ const styles = StyleSheet.create({
   privacy: {
     ...typography.body,
     color: colors.primaryDark,
+  },
+  message: {
+    ...typography.body,
+    color: colors.amber,
   },
 });

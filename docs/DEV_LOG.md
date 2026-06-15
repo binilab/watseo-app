@@ -52,6 +52,20 @@
     - 회원가입 성공 후 `/role`로 이동
     - 로그인 성공 후 `/home`으로 이동 유지
     - `/role` -> `/permissions` -> `/home` 흐름 확인
+22. 온보딩 완료 상태 저장 설계를 정리했다.
+    - 상태 저장 위치: `profiles`
+    - 역할 선택값은 v1에서 저장하지 않음
+    - fixed role 컬럼은 만들지 않음
+    - draft migration: `supabase/migrations/20260615_add_onboarding_state_to_profiles.sql`
+23. `/permissions` 완료 버튼에서 `profiles` 온보딩 상태를 update하도록 앱 코드를 연결했다.
+    - `profiles` insert는 하지 않음
+24. 사용자 승인 후 온보딩 상태 migration을 적용했다.
+    - `profiles.onboarding_completed`
+    - `profiles.onboarding_completed_at`
+    - `profiles.permissions_seen`
+    - `profiles.permissions_seen_at`
+    - 기존 `profiles_update_own` 정책으로 본인 update 가능 확인
+    - `src/types/supabase.ts` 업데이트
 
 ## Current Issue
 
@@ -70,9 +84,19 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 진행 전 확인할 작업은 다음과 같다.
 
 1. 로그인 상태에 따른 route guard 설계
-2. 온보딩 완료 상태 저장 방식 설계
+2. 로그인 성공 후 온보딩 상태 기반 분기 구현
 3. invite token 생성/해시 저장 흐름 설계
 4. relationships/trips 실제 DB 연결 전 mock data 경계 정리
+
+## Onboarding State Route Plan
+
+- 회원가입 성공 시 `/role`로 이동한다.
+- `/role`에서 선택 후 `/permissions`로 이동한다.
+- `/permissions` 완료 시 `profiles.permissions_seen`, `profiles.permissions_seen_at`, `profiles.onboarding_completed`, `profiles.onboarding_completed_at`을 update하고 `/home`으로 이동한다.
+- 로그인 성공 시에는 migration 적용 후 `profiles.onboarding_completed`를 조회한다.
+  - `true`: `/home`
+  - `false`: `/role`
+- 전체 route guard는 아직 구현하지 않고 별도 단계에서 설계한다.
 
 ## Auth Manual Test Checklist
 
