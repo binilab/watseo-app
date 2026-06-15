@@ -64,3 +64,14 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 2. Auth 이후 onboarding 흐름 정리
 3. invite token 생성/해시 저장 흐름 설계
 4. relationships/trips 실제 DB 연결 전 mock data 경계 정리
+
+## Auth Manual Test Checklist
+
+- `/login`은 로그인 전 접근 가능해야 한다.
+- 이메일/비밀번호 회원가입 성공 시 `/home`으로 이동해야 한다.
+- 이메일/비밀번호 로그인 성공 시 `/home`으로 이동해야 한다.
+- `/home`에서 로그아웃 성공 시 `/login`으로 이동해야 한다.
+- Auth 에러는 Supabase 원문 대신 사용자에게 자연스러운 문구로 보여야 한다.
+- 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 생성한다.
+- 앱 코드에서 `profiles` row를 직접 insert하지 않는다.
+- 전체 route guard는 아직 과하게 구현하지 않고 다음 단계에서 설계한다.

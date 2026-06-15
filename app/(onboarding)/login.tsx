@@ -7,6 +7,37 @@ import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabase";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 
+function getAuthMessage(message: string, mode: "signIn" | "signUp") {
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("invalid credentials")
+  ) {
+    return "이메일이나 비밀번호가 맞지 않아요.";
+  }
+
+  if (normalizedMessage.includes("email not confirmed")) {
+    return "이메일 확인을 마친 뒤 다시 로그인해주세요.";
+  }
+
+  if (normalizedMessage.includes("user already registered")) {
+    return "이미 가입된 이메일이에요. 로그인으로 이어가주세요.";
+  }
+
+  if (normalizedMessage.includes("password")) {
+    return "비밀번호 조건을 다시 확인해주세요.";
+  }
+
+  if (normalizedMessage.includes("email")) {
+    return "이메일 주소를 다시 확인해주세요.";
+  }
+
+  return mode === "signIn"
+    ? "로그인하지 못했어요. 입력 내용을 확인하고 다시 시도해주세요."
+    : "계정을 만들지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
 export default function LoginScreen() {
   const { loading: sessionLoading, session } = useAuthSession();
   const [email, setEmail] = useState("");
@@ -25,7 +56,7 @@ export default function LoginScreen() {
 
   async function signIn() {
     if (!supabase) {
-      setMessage("Supabase 환경변수를 설정한 뒤 다시 시도해주세요.");
+      setMessage("로그인 설정이 아직 준비되지 않았어요.");
       return;
     }
 
@@ -40,7 +71,7 @@ export default function LoginScreen() {
     setSubmitting(null);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getAuthMessage(error.message, "signIn"));
       return;
     }
 
@@ -49,7 +80,7 @@ export default function LoginScreen() {
 
   async function signUp() {
     if (!supabase) {
-      setMessage("Supabase 환경변수를 설정한 뒤 다시 시도해주세요.");
+      setMessage("로그인 설정이 아직 준비되지 않았어요.");
       return;
     }
 
@@ -64,7 +95,7 @@ export default function LoginScreen() {
     setSubmitting(null);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getAuthMessage(error.message, "signUp"));
       return;
     }
 
@@ -96,7 +127,7 @@ export default function LoginScreen() {
       }
     >
       <StatusChip
-        label={isSupabaseConfigured ? "Supabase Auth 연결됨" : "환경변수 설정 필요"}
+        label={isSupabaseConfigured ? "계정 연결 준비 완료" : "로그인 설정 필요"}
         tone={isSupabaseConfigured ? "active" : "neutral"}
       />
       <View style={styles.header}>
@@ -143,7 +174,7 @@ export default function LoginScreen() {
         {message ? <Text style={styles.message}>{message}</Text> : null}
         {!isSupabaseConfigured ? (
           <Text style={styles.hint}>
-            `.env`에 Supabase URL과 anon key를 설정하면 로그인할 수 있어요.
+            앱 설정을 마친 뒤 로그인할 수 있어요.
           </Text>
         ) : null}
       </Card>

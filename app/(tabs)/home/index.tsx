@@ -30,7 +30,7 @@ export default function HomeScreen() {
     setSigningOut(false);
 
     if (error) {
-      setSignOutMessage(error.message);
+      setSignOutMessage("로그아웃하지 못했어요. 잠시 후 다시 시도해주세요.");
       return;
     }
 
