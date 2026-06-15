@@ -28,24 +28,32 @@
     - project name: `watseo-app`
     - status: `ACTIVE_HEALTHY`
     - public schema 기존 테이블: 없음
+17. 사용자 승인 후 Supabase v1 schema migration을 적용했다.
+    - migration name: `watseo_v1_schema`
+    - local migration file: `supabase/migrations/20260615_watseo_v1_schema.sql`
+    - 생성된 public table: 10개
+    - 생성된 enum: 10개
+    - RLS 활성화 완료
+18. Supabase TypeScript 타입을 저장했다.
+    - `src/types/supabase.ts`
 
 ## Current Issue
 
-Supabase migration은 아직 적용하지 않았다.
+Supabase v1 schema migration 적용은 완료했다.
 
 - 옛 project ref: `ampgpgsciwkfkjpumtrb`
 - 이 프로젝트는 적용 대상이 아니다.
 - 새 project ref: `zknuyyknmxgrjuipdysf`
 - 새 project name: `watseo-app`
-- 새 프로젝트는 확인되었지만, 사용자 승인 전까지 migration 적용 금지.
+- 이후 추가 migration은 사용자 승인 전까지 적용 금지.
 
 ## Next Step
 
-Supabase migration SQL 초안을 검토하고, 사용자가 명시적으로 `적용 승인`이라고 말한 뒤에만 적용한다.
+다음 단계는 Supabase client/Auth 연결이다.
 
-그 전까지는 다음 작업만 진행한다.
+진행 전 확인할 작업은 다음과 같다.
 
-1. SQL 초안 로컬 검토
-2. 테이블/enum 설계 리뷰
-3. UI skeleton 정리
-4. mock data와 실제 data 경계 유지
+1. Supabase client 설정 위치 결정
+2. Auth 화면과 mock UI 경계 정리
+3. invite token 생성/해시 저장 흐름 설계
+4. `src/types/supabase.ts` 타입을 client 코드에 연결

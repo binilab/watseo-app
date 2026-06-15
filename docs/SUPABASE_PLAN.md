@@ -16,7 +16,12 @@ Supabase 작업은 MCP로 진행할 예정이다.
 - public schema 기존 테이블: 없음
 
 확인된 새 프로젝트 외에는 migration을 적용하지 않는다.
-사용자가 명시적으로 `적용 승인`이라고 말하기 전까지 `apply_migration`은 금지한다.
+사용자 `적용 승인` 후 Supabase v1 schema migration 적용을 완료했다.
+
+- migration name: `watseo_v1_schema`
+- local migration file: `supabase/migrations/20260615_watseo_v1_schema.sql`
+- TypeScript types: `src/types/supabase.ts`
+- RLS: public table 10개 모두 활성화 완료
 
 ## Required Checks Before Migration
 
@@ -25,6 +30,36 @@ Supabase 작업은 MCP로 진행할 예정이다.
 3. status: `ACTIVE_HEALTHY`
 4. public schema 기존 테이블 목록: 없음
 5. 기존 테이블 충돌 여부: 충돌 없음
+
+## Applied v1 Schema
+
+Supabase v1 schema migration 적용 완료.
+
+### Tables
+
+- `profiles`
+- `relationships`
+- `connection_invites`
+- `destinations`
+- `trips`
+- `trip_recipients`
+- `arrival_verifications`
+- `time_extension_requests`
+- `help_requests`
+- `notification_events`
+
+### Enums
+
+- `app_state`
+- `relationship_type`
+- `relationship_status`
+- `invite_status`
+- `verification_method`
+- `verification_status`
+- `request_status`
+- `help_request_status`
+- `notification_type`
+- `notification_delivery_status`
 
 ## v1 Design Decisions
 
@@ -64,6 +99,6 @@ Supabase 작업은 MCP로 진행할 예정이다.
 
 ## Migration Rule
 
-Do not apply any migration until the user explicitly says: 적용 승인.
+The initial v1 schema migration has been applied to `zknuyyknmxgrjuipdysf`.
 
-Before that approval, only inspect project metadata and draft SQL locally.
+Future migrations still require explicit user approval before running `apply_migration`.
