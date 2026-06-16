@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
+import { createTripNotificationEvents } from "@/src/features/notifications/api";
 import type { Database } from "@/src/types/supabase";
 
 export type Trip = Database["public"]["Tables"]["trips"]["Row"];
@@ -17,6 +18,7 @@ export type TripRecipientSelection = {
 };
 
 export type CreateTripSessionInput = {
+  destinationName: string;
   ownerId: string;
   destinationId: string;
   expectedArrivalAt: string;
@@ -98,6 +100,15 @@ export async function createTripSession(input: CreateTripSessionInput) {
     };
   }
 
+  await createTripNotificationEvents({
+    actorId: input.ownerId,
+    destinationName: input.destinationName,
+    notificationType: "trip_started",
+    recipientIds: recipientInserts.map((recipient) => recipient.recipient_id),
+    state: "on_the_way",
+    tripId: tripResult.data.id,
+  });
+
   return {
     data: {
       trip: tripResult.data,
@@ -125,7 +136,7 @@ export async function fetchLatestActiveTrip(userId: string) {
     .from("trips")
     .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
     .eq("owner_id", userId)
-    .eq("state", "on_the_way")
+    .in("state", ["on_the_way", "late"])
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();

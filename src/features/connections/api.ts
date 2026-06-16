@@ -16,6 +16,14 @@ export type ConnectedPerson = {
   profile: Pick<Profile, "id" | "display_name" | "avatar_url"> | null;
 };
 
+export type RecipientActiveTrip = {
+  expectedArrivalAt: string;
+  ownerId: string;
+  ownerProfile: Pick<Profile, "id" | "display_name" | "avatar_url"> | null;
+  state: Database["public"]["Enums"]["app_state"];
+  tripId: string;
+};
+
 type ConnectionInviteInsert =
   Database["public"]["Tables"]["connection_invites"]["Insert"];
 type WatseoSupabaseClient = SupabaseClient<Database>;
@@ -108,6 +116,88 @@ export async function fetchAcceptedRelationships(userId: string) {
         profile: profilesById.get(connectedUserId) ?? null,
       };
     }),
+    error: null,
+  };
+}
+
+export async function fetchRecipientActiveTrips(userId: string) {
+  const client = getSupabaseClient();
+  const recipientsResult = await client
+    .from("trip_recipients")
+    .select("trip_id")
+    .eq("recipient_id", userId);
+
+  if (recipientsResult.error) {
+    return {
+      data: null,
+      error: recipientsResult.error,
+    };
+  }
+
+  const tripIds = [...new Set((recipientsResult.data ?? []).map((row) => row.trip_id))];
+
+  if (tripIds.length === 0) {
+    return {
+      data: [] as RecipientActiveTrip[],
+      error: null,
+    };
+  }
+
+  const activeStates = [
+    "on_the_way",
+    "late",
+    "arrived_partial",
+    "extension_requested",
+    "emergency_requested",
+  ] as const;
+  const tripsResult = await client
+    .from("trips")
+    .select("id, owner_id, state, expected_arrival_at, updated_at")
+    .in("id", tripIds)
+    .in("state", activeStates)
+    .order("updated_at", { ascending: false });
+
+  if (tripsResult.error) {
+    return {
+      data: null,
+      error: tripsResult.error,
+    };
+  }
+
+  const trips = tripsResult.data ?? [];
+  const ownerIds = [...new Set(trips.map((trip) => trip.owner_id))];
+
+  if (ownerIds.length === 0) {
+    return {
+      data: [] as RecipientActiveTrip[],
+      error: null,
+    };
+  }
+
+  const profilesResult = await client
+    .from("profiles")
+    .select("id, display_name, avatar_url")
+    .in("id", ownerIds);
+
+  if (profilesResult.error) {
+    return {
+      data: null,
+      error: profilesResult.error,
+    };
+  }
+
+  const profilesById = new Map(
+    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
+
+  return {
+    data: trips.map((trip) => ({
+      expectedArrivalAt: trip.expected_arrival_at,
+      ownerId: trip.owner_id,
+      ownerProfile: profilesById.get(trip.owner_id) ?? null,
+      state: trip.state,
+      tripId: trip.id,
+    })),
     error: null,
   };
 }

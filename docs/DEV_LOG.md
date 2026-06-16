@@ -139,6 +139,19 @@
     - 성공 후 `/home/partial-verification?tripId=...`로 이동
     - v1에서는 QR 실패 기록을 남기지 않고 사용자용 오류만 표시
     - `notification_events`는 아직 생성하지 않음
+38. `notification_events` DB 기록을 추가했다.
+    - 귀가 시작 후 trip recipients 저장 성공 시 `trip_started` 기록
+    - QR 인증 성공 후 trip state update 성공 시 `arrived_partial` 기록
+    - 실제 push notification은 아직 구현하지 않음
+    - payload는 whitelist key인 `destination_name`, `state`, `notification_type`, `trip_id`만 사용
+    - 상세 주소, 좌표, 이동 경로는 payload에 넣지 않음
+    - notification 기록 실패는 핵심 동작을 막지 않고 `console.error`만 남김
+39. `/connections` 대시보드에 내가 recipient로 포함된 진행 중 귀가 상태 표시를 추가했다.
+    - `trip_recipients.recipient_id = current user` 기준으로 trip ids 조회
+    - `trips.state in (on_the_way, late, arrived_partial, extension_requested, emergency_requested)` 상태만 표시
+    - 상대 `profiles.display_name`, 상태, 예상 도착 시간 표시
+    - 연결된 사람 화면에서는 `destinations` 직접 조회에 의존하지 않고 장소는 일반 문구로 표시
+40. `/home/active`가 route param이 없을 때 현재 사용자의 최신 `on_the_way`/`late` trip을 fallback 조회하도록 개선했다.
 
 ## Current Issue
 

@@ -3,10 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
   fetchAcceptedRelationships,
+  fetchRecipientActiveTrips,
   type ConnectedPerson,
+  type RecipientActiveTrip,
 } from "@/src/features/connections/api";
 
 type ConnectionsState = {
+  activeTrips: RecipientActiveTrip[];
   connections: ConnectedPerson[];
   errorMessage: string | null;
   loading: boolean;
@@ -18,6 +21,7 @@ const LOAD_ERROR_MESSAGE = "연결 목록을 불러오지 못했어요. 잠시 �
 
 export function useConnections(): ConnectionsState {
   const { user } = useAuthSession();
+  const [activeTrips, setActiveTrips] = useState<RecipientActiveTrip[]>([]);
   const [connections, setConnections] = useState<ConnectedPerson[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +30,7 @@ export function useConnections(): ConnectionsState {
   const loadConnections = useCallback(
     async (mode: "initial" | "refresh" = "refresh") => {
       if (!user) {
+        setActiveTrips([]);
         setConnections([]);
         setLoading(false);
         setRefreshing(false);
@@ -39,12 +44,16 @@ export function useConnections(): ConnectionsState {
       }
 
       try {
-        const { data, error } = await fetchAcceptedRelationships(user.id);
+        const [relationshipsResult, activeTripsResult] = await Promise.all([
+          fetchAcceptedRelationships(user.id),
+          fetchRecipientActiveTrips(user.id),
+        ]);
 
-        if (error) {
+        if (relationshipsResult.error || activeTripsResult.error) {
           setErrorMessage(LOAD_ERROR_MESSAGE);
         } else {
-          setConnections(data ?? []);
+          setConnections(relationshipsResult.data ?? []);
+          setActiveTrips(activeTripsResult.data ?? []);
           setErrorMessage(null);
         }
       } catch {
@@ -62,6 +71,7 @@ export function useConnections(): ConnectionsState {
   }, [loadConnections]);
 
   return {
+    activeTrips,
     connections,
     errorMessage,
     loading,

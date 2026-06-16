@@ -112,6 +112,7 @@ export default function ReturnSetupScreen() {
 
     try {
       const { data, error, recipientError } = await createTripSession({
+        destinationName: selectedDestination.name,
         ownerId: userId,
         destinationId: selectedDestination.id,
         expectedArrivalAt: expectedArrivalAt.toISOString(),

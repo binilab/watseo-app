@@ -5,7 +5,12 @@ import { Clock3, QrCode } from "lucide-react-native";
 
 import { AppButton, Card, ListItem, Screen, StatusChip } from "@/src/components";
 import { activeTimeline } from "@/src/data/mock";
-import { fetchTripById, type Trip } from "@/src/features/trips/api";
+import { useAuthSession } from "@/src/features/auth/useAuthSession";
+import {
+  fetchLatestActiveTrip,
+  fetchTripById,
+  type Trip,
+} from "@/src/features/trips/api";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
@@ -30,24 +35,30 @@ export default function ActiveReturnScreen() {
     recipientStatus?: string;
     tripId?: string;
   }>();
+  const { loading: authLoading, user } = useAuthSession();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [loading, setLoading] = useState(Boolean(tripId));
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const status = getStatusDisplay("on_the_way");
   const remainingMinutes = useMemo(
     () => getRemainingMinutes(trip?.expected_arrival_at),
     [trip?.expected_arrival_at],
   );
-  const missingTripId = !tripId;
-  const displayStatus = missingTripId
+  const missingTrip = !loading && !trip;
+  const displayStatus = trip
+    ? getStatusDisplay(trip.state)
+    : missingTrip
     ? { label: "정보 없음", tone: "neutral" as const }
-    : status;
+    : getStatusDisplay("on_the_way");
 
   useEffect(() => {
     let mounted = true;
 
     async function loadTrip() {
-      if (!tripId) {
+      if (authLoading) {
+        return;
+      }
+
+      if (!user) {
         setTrip(null);
         setLoading(false);
         return;
@@ -55,13 +66,19 @@ export default function ActiveReturnScreen() {
 
       setLoading(true);
       try {
-        const { data, error } = await fetchTripById(tripId);
+        const { data, error } = tripId
+          ? await fetchTripById(tripId)
+          : await fetchLatestActiveTrip(user.id);
 
         if (!mounted) return;
 
         if (error || !data) {
           setTrip(null);
-          setErrorMessage("귀가 세션 정보를 불러오지 못했어요.");
+          setErrorMessage(
+            tripId
+              ? "귀가 세션 정보를 불러오지 못했어요."
+              : "진행 중인 귀가 정보를 찾을 수 없어요.",
+          );
         } else {
           setTrip(data);
           setErrorMessage(null);
@@ -82,7 +99,7 @@ export default function ActiveReturnScreen() {
     return () => {
       mounted = false;
     };
-  }, [tripId]);
+  }, [authLoading, tripId, user]);
 
   return (
     <Screen>
@@ -105,7 +122,7 @@ export default function ActiveReturnScreen() {
         </Text>
       </Card>
 
-      {missingTripId ? (
+      {missingTrip ? (
         <Card tone="warm">
           <Text style={styles.cardTitle}>진행 중인 귀가 정보를 찾을 수 없어요</Text>
           <Text style={styles.description}>

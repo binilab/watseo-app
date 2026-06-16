@@ -5,6 +5,7 @@ import { CalendarClock, HeartHandshake, Link2, RotateCw, UserPlus } from "lucide
 import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
 import {
   type ConnectedPerson,
+  type RecipientActiveTrip,
   type RelationshipType,
 } from "@/src/features/connections/api";
 import { useConnections } from "@/src/features/connections/useConnections";
@@ -18,9 +19,40 @@ const RELATIONSHIP_TYPE_LABELS: Record<RelationshipType, string> = {
   other: "연결된 사람",
 };
 
-function ConnectionRow({ connection }: { connection: ConnectedPerson }) {
+const TRIP_STATE_LABELS: Record<string, string> = {
+  on_the_way: "귀가 중",
+  late: "확인 필요",
+  arrived_partial: "QR 인증 완료",
+  extension_requested: "시간 연장 요청",
+  emergency_requested: "도움 요청",
+  cancelled: "취소됨",
+};
+
+function formatExpectedArrival(value?: string) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getConnectedProfileId(connection: ConnectedPerson) {
+  return connection.profile?.id;
+}
+
+function ConnectionRow({
+  activeTrip,
+  connection,
+}: {
+  activeTrip?: RecipientActiveTrip;
+  connection: ConnectedPerson;
+}) {
   const displayName = connection.profile?.display_name ?? "연결된 사람";
   const avatarUrl = connection.profile?.avatar_url;
+  const tripDetail = activeTrip
+    ? `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+    : "도착 인증 알림을 함께 확인할 수 있어요.";
 
   return (
     <View style={styles.connectionRow}>
@@ -33,7 +65,8 @@ function ConnectionRow({ connection }: { connection: ConnectedPerson }) {
       </View>
       <View style={styles.connectionCopy}>
         <Text style={styles.connectionName}>{displayName}</Text>
-        <Text style={styles.connectionDetail}>도착 인증 알림을 함께 확인할 수 있어요.</Text>
+        <Text style={styles.connectionDetail}>{tripDetail}</Text>
+        {activeTrip ? <Text style={styles.connectionSubtle}>도착 예정 장소</Text> : null}
       </View>
       <Text style={styles.meta}>
         {RELATIONSHIP_TYPE_LABELS[connection.relationship.relationship_type]}
@@ -44,12 +77,16 @@ function ConnectionRow({ connection }: { connection: ConnectedPerson }) {
 
 export default function ConnectionsDashboardScreen() {
   const {
+    activeTrips,
     connections,
     errorMessage,
     loading,
     refreshConnections,
     refreshing,
   } = useConnections();
+  const activeTripsByOwnerId = new Map(
+    activeTrips.map((activeTrip) => [activeTrip.ownerId, activeTrip]),
+  );
 
   return (
     <Screen>
@@ -61,7 +98,9 @@ export default function ConnectionsDashboardScreen() {
       <Card tone="mint">
         <Text style={styles.big}>{loading ? "연결 확인 중" : `${connections.length}명 연결됨`}</Text>
         <Text style={styles.copy}>
-          {connections.length > 0
+          {activeTrips.length > 0
+            ? `${activeTrips.length}개의 귀가 상태를 확인할 수 있어요.`
+            : connections.length > 0
             ? "상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요."
             : "초대 코드를 만들거나 받은 초대 코드를 입력해 연결을 시작하세요."}
         </Text>
@@ -116,14 +155,35 @@ export default function ConnectionsDashboardScreen() {
         ) : null}
 
         {!loading
-          ? connections.map((connection) => (
-              <ConnectionRow
-                connection={connection}
-                key={connection.relationship.id}
-              />
-            ))
+          ? connections.map((connection) => {
+              const profileId = getConnectedProfileId(connection);
+              const activeTrip = profileId
+                ? activeTripsByOwnerId.get(profileId)
+                : undefined;
+
+              return (
+                <ConnectionRow
+                  activeTrip={activeTrip}
+                  connection={connection}
+                  key={connection.relationship.id}
+                />
+              );
+            })
           : null}
       </Card>
+
+      {!loading && activeTrips.length > 0 ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>확인 중인 귀가</Text>
+          {activeTrips.map((activeTrip) => (
+            <ListItem
+              detail={`${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`}
+              key={activeTrip.tripId}
+              title={activeTrip.ownerProfile?.display_name ?? "연결된 사람"}
+            />
+          ))}
+        </Card>
+      ) : null}
 
       <Card tone="blue">
         <ListItem
@@ -210,6 +270,10 @@ const styles = StyleSheet.create({
   connectionDetail: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  connectionSubtle: {
+    ...typography.caption,
+    color: colors.textSubtle,
   },
   meta: {
     ...typography.caption,

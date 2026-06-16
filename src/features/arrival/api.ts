@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
+import { createTripNotificationEvents } from "@/src/features/notifications/api";
 import type { Database } from "@/src/types/supabase";
 
 type ArrivalVerificationInsert =
@@ -77,7 +78,7 @@ export async function verifyTripArrivalByQr(
 
   const destinationResult = await client
     .from("destinations")
-    .select("id, owner_id, qr_token")
+    .select("id, owner_id, name, qr_token")
     .eq("id", tripResult.data.destination_id)
     .eq("owner_id", input.userId)
     .maybeSingle();
@@ -161,6 +162,27 @@ export async function verifyTripArrivalByQr(
       reason: "trip_update_failed",
       error: updateResult.error,
     };
+  }
+
+  const recipientsResult = await client
+    .from("trip_recipients")
+    .select("recipient_id")
+    .eq("trip_id", tripResult.data.id);
+
+  if (recipientsResult.error) {
+    console.error("load trip recipients for notification failed", {
+      tripId: input.tripId,
+      error: recipientsResult.error,
+    });
+  } else {
+    await createTripNotificationEvents({
+      actorId: input.userId,
+      destinationName: destinationResult.data.name,
+      notificationType: "arrived_partial",
+      recipientIds: (recipientsResult.data ?? []).map((recipient) => recipient.recipient_id),
+      state: "arrived_partial",
+      tripId: tripResult.data.id,
+    });
   }
 
   return {
