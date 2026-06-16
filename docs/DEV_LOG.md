@@ -171,6 +171,21 @@
     - `createTripSession` helper도 active trip을 방어적으로 확인해 중복 insert를 막음
     - `/home/active`에 `귀가 취소` 버튼을 추가하고 `trips.state = cancelled`, `cancelled_at = now`로 update
     - `/connections`는 recipient 기준 active trip 중 owner별 최신 1개만 표시하고, `emergency_requested`는 우선 표시
+43. `/history` 귀가 기록 화면을 Supabase 실제 DB 조회에 연결했다.
+    - 현재 로그인 사용자의 `trips.owner_id = current user` 기록만 최신순으로 조회
+    - `destinations`는 owner가 읽을 수 있는 `id`, `name`만 조회해 장소 이름 표시
+    - `arrival_verifications`, `help_requests`, `time_extension_requests`는 trip id 기준으로 batch 조회해 각 기록 카드에 표시
+    - 상태 라벨은 `arrived_partial = QR 인증 완료`, `arrived_verified = 도착 인증 완료`, `cancelled = 취소됨`, `emergency_requested = 도움 요청`, `extension_requested = 시간 연장 요청`, `on_the_way/late = 진행 중`으로 표시
+    - active 상태 기록은 `/home/active?tripId=...`로 이동 가능하게 처리
+    - 상세 주소, 좌표, 이동 경로는 조회하거나 표시하지 않음
+    - 기록 상세 화면은 아직 추가하지 않고 목록 카드 중심으로 구현
+44. `/history` cancelled 상태 표시 버그를 수정했다.
+    - 원인: 화면이 mount 시점 조회만 수행해 stale local state가 남을 수 있었고, 오른쪽 뱃지가 QR/도움/연장 플래그를 우선해 `cancelled`를 덮어쓸 수 있었음
+    - `useFocusEffect`로 `/history` focus 시마다 Supabase에서 다시 조회
+    - 상태 우선순위를 `cancelled 또는 cancelled_at 있음`, `arrived_partial`, `arrived_verified`, `emergency_requested`, `extension_requested`, `late`, `on_the_way` 순서로 정리
+    - `cancelled` 또는 `cancelled_at`이 있으면 제목과 오른쪽 뱃지를 모두 `취소됨`으로 통일
+    - active 판정은 `on_the_way`, `late`, `extension_requested`, `emergency_requested`만 사용
+    - 개발 확인용으로 trip id prefix, state, cancelled_at만 `console.log("history trips", ...)`에 기록
 
 ## Current Issue
 
