@@ -10,10 +10,15 @@ type WatseoSupabaseClient = SupabaseClient<Database>;
 
 type CreateTripNotificationEventsInput = {
   actorId: string;
-  destinationName: string;
-  notificationType: Extract<NotificationType, "trip_started" | "arrived_partial">;
+  destinationName?: string;
+  message?: string;
+  notificationType: Extract<
+    NotificationType,
+    "trip_started" | "arrived_partial" | "help_requested"
+  >;
+  previousState?: string;
   recipientIds: string[];
-  state: "on_the_way" | "arrived_partial";
+  state: "on_the_way" | "arrived_partial" | "emergency_requested";
   tripId: string;
 };
 
@@ -34,11 +39,22 @@ export async function createTripNotificationEvents(
 
   const client = getSupabaseClient();
   const payload: Json = {
-    destination_name: input.destinationName,
     state: input.state,
     notification_type: input.notificationType,
     trip_id: input.tripId,
   };
+
+  if (input.destinationName) {
+    payload.destination_name = input.destinationName;
+  }
+
+  if (input.previousState) {
+    payload.previous_state = input.previousState;
+  }
+
+  if (input.message) {
+    payload.message = input.message;
+  }
   const events: NotificationEventInsert[] = input.recipientIds.map((recipientId) => ({
     actor_id: input.actorId,
     delivery_status: "recorded",

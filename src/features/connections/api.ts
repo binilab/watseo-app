@@ -146,7 +146,6 @@ export async function fetchRecipientActiveTrips(userId: string) {
   const activeStates = [
     "on_the_way",
     "late",
-    "arrived_partial",
     "extension_requested",
     "emergency_requested",
   ] as const;
@@ -164,8 +163,21 @@ export async function fetchRecipientActiveTrips(userId: string) {
     };
   }
 
-  const trips = tripsResult.data ?? [];
-  const ownerIds = [...new Set(trips.map((trip) => trip.owner_id))];
+  const trips = [...(tripsResult.data ?? [])].sort((a, b) => {
+    if (a.state === "emergency_requested" && b.state !== "emergency_requested") return -1;
+    if (a.state !== "emergency_requested" && b.state === "emergency_requested") return 1;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+  const latestTripsByOwnerId = new Map<string, (typeof trips)[number]>();
+
+  for (const trip of trips) {
+    if (!latestTripsByOwnerId.has(trip.owner_id)) {
+      latestTripsByOwnerId.set(trip.owner_id, trip);
+    }
+  }
+
+  const visibleTrips = [...latestTripsByOwnerId.values()];
+  const ownerIds = [...new Set(visibleTrips.map((trip) => trip.owner_id))];
 
   if (ownerIds.length === 0) {
     return {
@@ -191,7 +203,7 @@ export async function fetchRecipientActiveTrips(userId: string) {
   );
 
   return {
-    data: trips.map((trip) => ({
+    data: visibleTrips.map((trip) => ({
       expectedArrivalAt: trip.expected_arrival_at,
       ownerId: trip.owner_id,
       ownerProfile: profilesById.get(trip.owner_id) ?? null,

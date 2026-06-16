@@ -10,6 +10,9 @@ export type TripRecipient = Database["public"]["Tables"]["trip_recipients"]["Row
 type TripInsert = Database["public"]["Tables"]["trips"]["Insert"];
 type TripRecipientInsert =
   Database["public"]["Tables"]["trip_recipients"]["Insert"];
+type HelpRequestInsert =
+  Database["public"]["Tables"]["help_requests"]["Insert"];
+type TripUpdate = Database["public"]["Tables"]["trips"]["Update"];
 type WatseoSupabaseClient = SupabaseClient<Database>;
 
 export type TripRecipientSelection = {
@@ -26,6 +29,18 @@ export type CreateTripSessionInput = {
   recipients: TripRecipientSelection[];
 };
 
+export type RequestHelpInput = {
+  requestedBy: string;
+  trip: Trip;
+};
+
+const OWNER_ACTIVE_TRIP_STATES = [
+  "on_the_way",
+  "late",
+  "extension_requested",
+  "emergency_requested",
+] as const;
+
 function getSupabaseClient(): WatseoSupabaseClient {
   if (!supabase) {
     throw new Error("Supabase 환경변수가 설정되지 않았어요.");
@@ -36,6 +51,31 @@ function getSupabaseClient(): WatseoSupabaseClient {
 
 export async function createTripSession(input: CreateTripSessionInput) {
   const client = getSupabaseClient();
+  const activeTripResult = await fetchLatestActiveTrip(input.ownerId);
+
+  if (activeTripResult.error) {
+    console.error("check active trip before create failed", activeTripResult.error);
+
+    return {
+      data: null,
+      error: activeTripResult.error,
+      recipientError: null,
+      existingActiveTrip: null,
+    };
+  }
+
+  if (activeTripResult.data) {
+    return {
+      data: {
+        trip: activeTripResult.data,
+        recipients: [] as TripRecipient[],
+      },
+      error: null,
+      recipientError: null,
+      existingActiveTrip: activeTripResult.data,
+    };
+  }
+
   const tripInsert: TripInsert = {
     owner_id: input.ownerId,
     destination_id: input.destinationId,
@@ -57,6 +97,7 @@ export async function createTripSession(input: CreateTripSessionInput) {
       data: null,
       error: tripResult.error ?? new Error("trip insert failed"),
       recipientError: null,
+      existingActiveTrip: null,
     };
   }
 
@@ -68,6 +109,7 @@ export async function createTripSession(input: CreateTripSessionInput) {
       },
       error: null,
       recipientError: null,
+      existingActiveTrip: null,
     };
   }
 
@@ -97,6 +139,7 @@ export async function createTripSession(input: CreateTripSessionInput) {
       },
       error: null,
       recipientError: recipientsResult.error,
+      existingActiveTrip: null,
     };
   }
 
@@ -116,6 +159,7 @@ export async function createTripSession(input: CreateTripSessionInput) {
     },
     error: null,
     recipientError: null,
+    existingActiveTrip: null,
   };
 }
 
@@ -136,8 +180,128 @@ export async function fetchLatestActiveTrip(userId: string) {
     .from("trips")
     .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
     .eq("owner_id", userId)
-    .in("state", ["on_the_way", "late"])
+    .in("state", OWNER_ACTIVE_TRIP_STATES)
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
+}
+
+export async function cancelTrip(tripId: string, ownerId: string) {
+  const client = getSupabaseClient();
+  const cancelledAt = new Date().toISOString();
+  const tripUpdate: TripUpdate = {
+    state: "cancelled",
+    cancelled_at: cancelledAt,
+  };
+
+  const result = await client
+    .from("trips")
+    .update(tripUpdate)
+    .eq("id", tripId)
+    .eq("owner_id", ownerId)
+    .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
+    .single();
+
+  if (result.error) {
+    console.error("cancel trip failed", result.error, {
+      tripId,
+    });
+  }
+
+  return result;
+}
+
+export async function fetchTripRecipients(tripId: string) {
+  const client = getSupabaseClient();
+
+  return client
+    .from("trip_recipients")
+    .select("recipient_id")
+    .eq("trip_id", tripId);
+}
+
+export async function requestHelp(input: RequestHelpInput) {
+  const client = getSupabaseClient();
+  const previousState = input.trip.state;
+  const helpRequestInsert: HelpRequestInsert = {
+    trip_id: input.trip.id,
+    requested_by: input.requestedBy,
+    status: "requested",
+  };
+
+  const helpRequestResult = await client
+    .from("help_requests")
+    .insert(helpRequestInsert)
+    .select("id, trip_id, requested_by, status, acknowledged_by, acknowledged_at, resolved_at, created_at, updated_at")
+    .single();
+
+  if (helpRequestResult.error || !helpRequestResult.data) {
+    console.error("create help request failed", helpRequestResult.error);
+
+    return {
+      data: null,
+      error: helpRequestResult.error ?? new Error("help request insert failed"),
+      notificationError: null,
+    };
+  }
+
+  const tripUpdate: TripUpdate = {
+    state: "emergency_requested",
+  };
+  const tripResult = await client
+    .from("trips")
+    .update(tripUpdate)
+    .eq("id", input.trip.id)
+    .eq("owner_id", input.requestedBy)
+    .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
+    .single();
+
+  if (tripResult.error || !tripResult.data) {
+    console.error("update trip for help request failed", tripResult.error, {
+      tripId: input.trip.id,
+    });
+
+    return {
+      data: null,
+      error: tripResult.error ?? new Error("trip update failed"),
+      notificationError: null,
+    };
+  }
+
+  const recipientsResult = await fetchTripRecipients(input.trip.id);
+
+  if (recipientsResult.error) {
+    console.error("load trip recipients for help request notification failed", {
+      tripId: input.trip.id,
+      error: recipientsResult.error,
+    });
+
+    return {
+      data: {
+        helpRequest: helpRequestResult.data,
+        trip: tripResult.data,
+      },
+      error: null,
+      notificationError: recipientsResult.error,
+    };
+  }
+
+  const notificationResult = await createTripNotificationEvents({
+    actorId: input.requestedBy,
+    message: "도움 요청이 도착했어요.",
+    notificationType: "help_requested",
+    previousState,
+    recipientIds: (recipientsResult.data ?? []).map((recipient) => recipient.recipient_id),
+    state: "emergency_requested",
+    tripId: input.trip.id,
+  });
+
+  return {
+    data: {
+      helpRequest: helpRequestResult.data,
+      trip: tripResult.data,
+    },
+    error: null,
+    notificationError: notificationResult.error,
+  };
 }

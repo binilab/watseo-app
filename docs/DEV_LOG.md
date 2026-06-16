@@ -152,6 +152,25 @@
     - 상대 `profiles.display_name`, 상태, 예상 도착 시간 표시
     - 연결된 사람 화면에서는 `destinations` 직접 조회에 의존하지 않고 장소는 일반 문구로 표시
 40. `/home/active`가 route param이 없을 때 현재 사용자의 최신 `on_the_way`/`late` trip을 fallback 조회하도록 개선했다.
+41. `/home/help-request` 도움 요청 기능을 Supabase 실제 DB에 연결했다.
+    - `tripId` route param 우선, 없으면 현재 사용자의 active trip fallback 조회
+    - active trip fallback 상태는 `on_the_way`, `late`, `extension_requested`, `emergency_requested`
+    - 도움 요청 시 `help_requests`에 `trip_id`, `requested_by`, `status = requested` insert
+    - insert 성공 후 `trips.state = emergency_requested` update
+    - trip recipients에게 `notification_events.type = help_requested`, `delivery_status = recorded` 기록
+    - payload는 `notification_type`, `state`, `previous_state`, `trip_id`, `message`만 사용
+    - 상세 주소, 좌표, 이동 경로는 저장하지 않음
+    - `/home/active` 도움 요청 버튼은 `tripId`를 유지해 `/home/help-request?tripId=...`로 이동
+    - `/connections`에서 `emergency_requested` 상태를 “도움 요청”, “확인이 필요해요” 문구로 강조
+    - 연결된 사람이 도움 요청을 확인 처리하는 기능은 다음 단계 TODO로 남김
+42. v1 active trip 1개 정책과 귀가 취소 기능을 앱 코드에 반영했다.
+    - active 상태 기준은 `on_the_way`, `late`, `extension_requested`, `emergency_requested`
+    - `arrived_partial`, `cancelled`는 active 조회에서 제외
+    - `/home`은 현재 사용자의 최신 active trip이 있으면 `내 귀가 상황 보기` 카드를 표시
+    - `/home/return-setup` 진입 및 귀가 시작 직전에 기존 active trip을 확인하고, 있으면 새 `trips` row를 만들지 않고 `/home/active?tripId=...`로 이동
+    - `createTripSession` helper도 active trip을 방어적으로 확인해 중복 insert를 막음
+    - `/home/active`에 `귀가 취소` 버튼을 추가하고 `trips.state = cancelled`, `cancelled_at = now`로 update
+    - `/connections`는 recipient 기준 active trip 중 owner별 최신 1개만 표시하고, `emergency_requested`는 우선 표시
 
 ## Current Issue
 

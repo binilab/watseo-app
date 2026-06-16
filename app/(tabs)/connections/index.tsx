@@ -53,6 +53,7 @@ function ConnectionRow({
   const tripDetail = activeTrip
     ? `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
     : "도착 인증 알림을 함께 확인할 수 있어요.";
+  const needsHelp = activeTrip?.state === "emergency_requested";
 
   return (
     <View style={styles.connectionRow}>
@@ -65,7 +66,9 @@ function ConnectionRow({
       </View>
       <View style={styles.connectionCopy}>
         <Text style={styles.connectionName}>{displayName}</Text>
-        <Text style={styles.connectionDetail}>{tripDetail}</Text>
+        <Text style={needsHelp ? styles.connectionAlert : styles.connectionDetail}>
+          {needsHelp ? `${tripDetail} · 확인이 필요해요` : tripDetail}
+        </Text>
         {activeTrip ? <Text style={styles.connectionSubtle}>도착 예정 장소</Text> : null}
       </View>
       <Text style={styles.meta}>
@@ -177,9 +180,17 @@ export default function ConnectionsDashboardScreen() {
           <Text style={styles.cardTitle}>확인 중인 귀가</Text>
           {activeTrips.map((activeTrip) => (
             <ListItem
-              detail={`${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`}
+              detail={
+                activeTrip.state === "emergency_requested"
+                  ? `확인이 필요해요 · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+                  : `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+              }
               key={activeTrip.tripId}
-              title={activeTrip.ownerProfile?.display_name ?? "연결된 사람"}
+              title={
+                activeTrip.state === "emergency_requested"
+                  ? `${activeTrip.ownerProfile?.display_name ?? "연결된 사람"} · 도움 요청`
+                  : activeTrip.ownerProfile?.display_name ?? "연결된 사람"
+              }
             />
           ))}
         </Card>
@@ -270,6 +281,10 @@ const styles = StyleSheet.create({
   connectionDetail: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  connectionAlert: {
+    ...typography.caption,
+    color: colors.danger,
   },
   connectionSubtle: {
     ...typography.caption,

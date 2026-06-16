@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { Clock3, QrCode } from "lucide-react-native";
+import { Clock3, MessageCircleWarning, QrCode } from "lucide-react-native";
 
 import { AppButton, Card, ListItem, Screen, StatusChip } from "@/src/components";
 import { activeTimeline } from "@/src/data/mock";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
+  cancelTrip,
   fetchLatestActiveTrip,
   fetchTripById,
   type Trip,
@@ -31,13 +32,15 @@ function formatTime(value?: string | null) {
 }
 
 export default function ActiveReturnScreen() {
-  const { recipientStatus, tripId } = useLocalSearchParams<{
+  const { notificationStatus, recipientStatus, tripId } = useLocalSearchParams<{
+    notificationStatus?: string;
     recipientStatus?: string;
     tripId?: string;
   }>();
   const { loading: authLoading, user } = useAuthSession();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const remainingMinutes = useMemo(
     () => getRemainingMinutes(trip?.expected_arrival_at),
@@ -49,6 +52,7 @@ export default function ActiveReturnScreen() {
     : missingTrip
     ? { label: "정보 없음", tone: "neutral" as const }
     : getStatusDisplay("on_the_way");
+  const helpRequested = trip?.state === "emergency_requested";
 
   useEffect(() => {
     let mounted = true;
@@ -100,6 +104,27 @@ export default function ActiveReturnScreen() {
       mounted = false;
     };
   }, [authLoading, tripId, user]);
+
+  async function handleCancelTrip() {
+    if (!user || !trip) {
+      setErrorMessage("귀가 세션 정보를 찾을 수 없어요.");
+      return;
+    }
+
+    setCancelling(true);
+    setErrorMessage(null);
+
+    const { error } = await cancelTrip(trip.id, user.id);
+
+    setCancelling(false);
+
+    if (error) {
+      setErrorMessage("귀가를 취소하지 못했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    router.replace("/home");
+  }
 
   return (
     <Screen>
@@ -161,6 +186,24 @@ export default function ActiveReturnScreen() {
         </Card>
       ) : null}
 
+      {notificationStatus === "failed" ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>알림 기록 확인 필요</Text>
+          <Text style={styles.description}>
+            귀가 상태는 저장됐지만, 연결된 사람에게 보여줄 알림 기록은 완료되지 않았어요.
+          </Text>
+        </Card>
+      ) : null}
+
+      {helpRequested ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>도움 요청을 보냈어요</Text>
+          <Text style={styles.description}>
+            연결된 사람에게 확인이 필요한 상태로 표시돼요. 상세 위치는 계속 공유되지 않아요.
+          </Text>
+        </Card>
+      ) : null}
+
       {trip ? (
         <>
           <Card>
@@ -187,13 +230,32 @@ export default function ActiveReturnScreen() {
             />
             <AppButton
               icon={Clock3}
-              onPress={() => router.push("/home/time-extension")}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/time-extension",
+                  params: { tripId: trip.id },
+                })
+              }
               title="시간 연장 요청"
               variant="secondary"
             />
             <AppButton
-              onPress={() => router.push("/home/help-request")}
-              title="도움 요청 화면 보기"
+              disabled={helpRequested}
+              icon={MessageCircleWarning}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/help-request",
+                  params: { tripId: trip.id },
+                })
+              }
+              title={helpRequested ? "도움 요청 보냄" : "도움 요청"}
+              variant="danger"
+            />
+            <AppButton
+              disabled={cancelling}
+              loading={cancelling}
+              onPress={handleCancelTrip}
+              title="귀가 취소"
               variant="ghost"
             />
           </View>

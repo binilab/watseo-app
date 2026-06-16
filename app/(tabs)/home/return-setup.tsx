@@ -14,7 +14,11 @@ import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/componen
 import {
   type ConnectedPerson,
 } from "@/src/features/connections/api";
-import { createTripSession } from "@/src/features/trips/api";
+import {
+  createTripSession,
+  fetchLatestActiveTrip,
+  type Trip,
+} from "@/src/features/trips/api";
 import { useReturnSetupData } from "@/src/features/trips/useReturnSetupData";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
@@ -55,12 +59,41 @@ export default function ReturnSetupScreen() {
   const [customMinutes, setCustomMinutes] = useState("");
   const [starting, setStarting] = useState(false);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [existingActiveTrip, setExistingActiveTrip] = useState<Trip | null>(null);
 
   useEffect(() => {
     if (!selectedDestinationId && destinations[0]) {
       setSelectedDestinationId(destinations[0].id);
     }
   }, [destinations, selectedDestinationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadExistingActiveTrip() {
+      if (!userId) {
+        setExistingActiveTrip(null);
+        return;
+      }
+
+      const { data, error } = await fetchLatestActiveTrip(userId);
+
+      if (!mounted) return;
+
+      if (error) {
+        console.error("check active trip before return setup failed", error);
+        return;
+      }
+
+      setExistingActiveTrip(data ?? null);
+    }
+
+    void loadExistingActiveTrip();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   const selectedDestination = destinations.find(
     (destination) => destination.id === selectedDestinationId,
@@ -74,7 +107,13 @@ export default function ReturnSetupScreen() {
 
     return selectedMinutes;
   }, [customMinutes, selectedMinutes]);
-  const canStart = Boolean(userId && selectedDestination && resolvedMinutes > 0 && !starting);
+  const canStart = Boolean(
+    userId
+      && selectedDestination
+      && resolvedMinutes > 0
+      && !starting
+      && !existingActiveTrip,
+  );
 
   const toggleConnection = (relationshipId: string) => {
     setSelectedConnectionIds((current) =>
@@ -96,6 +135,15 @@ export default function ReturnSetupScreen() {
       return;
     }
 
+    if (existingActiveTrip) {
+      setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+      router.replace({
+        pathname: "/home/active",
+        params: { tripId: existingActiveTrip.id },
+      });
+      return;
+    }
+
     const startedAt = new Date();
     const expectedArrivalAt = new Date(
       startedAt.getTime() + resolvedMinutes * 60 * 1000,
@@ -111,7 +159,25 @@ export default function ReturnSetupScreen() {
     setFormMessage(null);
 
     try {
-      const { data, error, recipientError } = await createTripSession({
+      const activeTripResult = await fetchLatestActiveTrip(userId);
+
+      if (activeTripResult.error) {
+        console.error("check active trip before create failed", activeTripResult.error);
+        setFormMessage("진행 중인 귀가 확인에 실패했어요. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      if (activeTripResult.data) {
+        setExistingActiveTrip(activeTripResult.data);
+        setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+        router.replace({
+          pathname: "/home/active",
+          params: { tripId: activeTripResult.data.id },
+        });
+        return;
+      }
+
+      const { data, error, recipientError, existingActiveTrip: blockedTrip } = await createTripSession({
         destinationName: selectedDestination.name,
         ownerId: userId,
         destinationId: selectedDestination.id,
@@ -126,6 +192,16 @@ export default function ReturnSetupScreen() {
           recipientCount: selectedRecipients.length,
         });
         setFormMessage("귀가 세션을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      if (blockedTrip) {
+        setExistingActiveTrip(blockedTrip);
+        setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+        router.replace({
+          pathname: "/home/active",
+          params: { tripId: blockedTrip.id },
+        });
         return;
       }
 
@@ -163,6 +239,26 @@ export default function ReturnSetupScreen() {
         title="귀가 설정"
         description="도착 장소와 알림 받을 사람, 예상 도착 시간을 선택합니다."
       />
+
+      {existingActiveTrip ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>진행 중인 귀가가 있어요</Text>
+          <Text style={styles.copy}>
+            v1에서는 한 번에 하나의 귀가만 진행할 수 있어요. 기존 귀가 상황으로 이동해주세요.
+          </Text>
+          <AppButton
+            icon={Navigation}
+            onPress={() =>
+              router.replace({
+                pathname: "/home/active",
+                params: { tripId: existingActiveTrip.id },
+              })
+            }
+            title="내 귀가 상황 보기"
+            variant="secondary"
+          />
+        </Card>
+      ) : null}
 
       {errorMessage ? (
         <Card tone="warm">

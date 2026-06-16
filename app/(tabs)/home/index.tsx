@@ -1,7 +1,7 @@
-import { router } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { LogOut, MapPin, Navigation, QrCode } from "lucide-react-native";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Clock3, LogOut, MapPin, Navigation, QrCode } from "lucide-react-native";
 import {
   AppButton,
   Card,
@@ -12,14 +12,60 @@ import {
 } from "@/src/components";
 import { currentTrip, defaultPlace, homeMetrics, quickActions } from "@/src/data/mock";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
+import { fetchLatestActiveTrip, type Trip } from "@/src/features/trips/api";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
+
+function formatTime(value?: string | null) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function HomeScreen() {
   const status = getStatusDisplay(currentTrip.state);
   const { signOut, user } = useAuthSession();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
+  const [activeTripLoading, setActiveTripLoading] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+
+      async function loadActiveTrip() {
+        if (!user) {
+          setActiveTrip(null);
+          return;
+        }
+
+        setActiveTripLoading(true);
+
+        const { data, error } = await fetchLatestActiveTrip(user.id);
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error("fetch latest active trip failed", error);
+          setActiveTrip(null);
+        } else {
+          setActiveTrip(data ?? null);
+        }
+
+        setActiveTripLoading(false);
+      }
+
+      void loadActiveTrip();
+
+      return () => {
+        mounted = false;
+      };
+    }, [user]),
+  );
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -47,24 +93,58 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <Card tone="mint" style={styles.primaryCard}>
-        <View style={styles.destinationRow}>
-          <View style={styles.destinationIcon}>
-            <MapPin color={colors.primaryDark} size={28} strokeWidth={2.5} />
+      {activeTrip ? (
+        <Card tone="warm" style={styles.primaryCard}>
+          <View style={styles.destinationRow}>
+            <View style={styles.destinationIcon}>
+              <Clock3 color={colors.amber} size={28} strokeWidth={2.5} />
+            </View>
+            <View style={styles.destinationCopy}>
+              <Text style={styles.cardTitle}>진행 중인 귀가가 있어요</Text>
+              <Text style={styles.muted}>
+                {getStatusDisplay(activeTrip.state).label} · 예상 도착{" "}
+                {formatTime(activeTrip.expected_arrival_at)}
+              </Text>
+            </View>
           </View>
-          <View style={styles.destinationCopy}>
-            <Text style={styles.cardTitle}>기본 도착지</Text>
-            <Text style={styles.muted}>
-              {defaultPlace.title} · {defaultPlace.address}
-            </Text>
+          <AppButton
+            icon={Navigation}
+            onPress={() =>
+              router.push({
+                pathname: "/home/active",
+                params: { tripId: activeTrip.id },
+              })
+            }
+            title="내 귀가 상황 보기"
+          />
+        </Card>
+      ) : activeTripLoading ? (
+        <Card>
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={colors.primaryDark} />
+            <Text style={styles.muted}>진행 중인 귀가를 확인하고 있어요.</Text>
           </View>
-        </View>
-        <AppButton
-          icon={Navigation}
-          onPress={() => router.push("/home/return-setup")}
-          title="귀가 설정하기"
-        />
-      </Card>
+        </Card>
+      ) : (
+        <Card tone="mint" style={styles.primaryCard}>
+          <View style={styles.destinationRow}>
+            <View style={styles.destinationIcon}>
+              <MapPin color={colors.primaryDark} size={28} strokeWidth={2.5} />
+            </View>
+            <View style={styles.destinationCopy}>
+              <Text style={styles.cardTitle}>기본 도착지</Text>
+              <Text style={styles.muted}>
+                {defaultPlace.title} · {defaultPlace.address}
+              </Text>
+            </View>
+          </View>
+          <AppButton
+            icon={Navigation}
+            onPress={() => router.push("/home/return-setup")}
+            title="귀가 설정하기"
+          />
+        </Card>
+      )}
 
       <View style={styles.metrics}>
         {homeMetrics.map((item) => (
@@ -157,6 +237,11 @@ const styles = StyleSheet.create({
   },
   primaryCard: {
     gap: spacing.lg,
+  },
+  loadingRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
   },
   metricCard: {
     flex: 1,
