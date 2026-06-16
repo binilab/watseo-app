@@ -16,6 +16,8 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 
 `/places` 도착 장소 관리는 실제 Supabase `destinations` 테이블에 연결되었다.
 
+`/connections` 연결 관계와 초대 생성/수락은 실제 Supabase `relationships`, `connection_invites`, `accept_connection_invite` RPC에 연결되었다.
+
 현재는 실제 QR 스캔, 위치 권한, 푸시 알림을 붙이기 전 단계이며, 화면 구조와 타입 모델을 안정화하면서 Auth 이후 흐름을 준비하는 상태다.
 
 ## Implemented
@@ -39,11 +41,14 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 - 최소 Auth route guard
 - `/places` destinations 조회, 추가, 이름 수정
 - `/places/qr-code` selected destination `qr_token` 참조 준비
+- `/connections` accepted relationships 조회
+- `/connections/connect` connection invite 생성
+- `/connections/invite` accept_connection_invite RPC 수락
 
 ## Not Implemented Yet
 
 - 세부 route guard 정책
-- relationships/trips 실제 DB 연결
+- trips 실제 DB 연결
 - 실제 QR 이미지 생성
 - 실제 QR 스캔
 - 실제 위치 권한

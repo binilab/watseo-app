@@ -72,6 +72,8 @@ Supabase v1 schema migration 적용 완료.
 - 귀가 세션마다 알림 받을 사람 선택
 - 알림은 DB 기록 먼저, 실제 push는 이후
 - 상세 위치/전체 이동 경로 저장 금지
+- 연결 초대 raw token은 DB에 저장하지 않고 `connection_invites.token_hash`만 저장
+- 초대 수락은 `accept_connection_invite(invite_token text)` RPC가 raw token을 hash해 처리
 
 ## Planned Tables
 
@@ -152,3 +154,15 @@ Route design after migration:
   - `true`: `/home`
   - `false`: `/role`
 - 전체 route guard는 별도 단계에서 설계한다.
+
+## Connection Invite Integration
+
+연결 초대는 기존 `connection_invites`, `relationships`, `accept_connection_invite` RPC를 사용한다.
+
+- 앱에서 raw invite token을 생성한다.
+- 앱은 raw token의 SHA-256 hash를 `connection_invites.token_hash`에 저장한다.
+- raw token은 DB에 저장하지 않는다.
+- raw token은 생성 직후 화면 표시와 복사용으로만 사용한다.
+- 초대 수락은 앱에서 `accept_connection_invite(invite_token text)` RPC를 호출한다.
+- 앱에서 `relationships`를 직접 `accepted`로 update하지 않는다.
+- 연결 목록에는 `relationships.status = 'accepted'`인 관계만 표시한다.

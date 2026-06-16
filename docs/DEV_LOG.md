@@ -79,10 +79,43 @@
     - 삭제는 v1에서 제외
 27. `/places/qr-code`가 선택된 destination id를 받아 해당 row의 `qr_token`을 참조할 준비를 했다.
     - 실제 QR 이미지 생성, QR 스캔, 도착 검증은 아직 구현하지 않음
+28. `/connections` 연결 목록을 Supabase `relationships`, `profiles` 데이터에 연결했다.
+    - 현재 로그인 사용자가 requester 또는 recipient인 `accepted` 관계만 조회
+    - 상대방 `profiles.display_name`, `profiles.avatar_url`을 목록에 표시
+    - loading / empty / error 상태 추가
+29. `/connections/connect` 연결 초대 생성을 실제 DB에 연결했다.
+    - 앱에서 raw invite token 생성
+    - `expo-crypto`로 SHA-256 hash 생성
+    - DB에는 `connection_invites.token_hash`만 저장
+    - `relationship_type`은 기본 `other`, 화면에서 선택 가능
+    - raw token은 생성 직후 화면 표시와 복사용으로만 사용
+30. `/connections/invite` 초대 수락을 `accept_connection_invite(invite_token text)` RPC에 연결했다.
+    - 앱에서 relationships를 직접 accepted로 update하지 않음
+    - 실패 시 사용자용 오류 문구 표시
+31. 연결 초대 수락 실패 디버깅을 위해 초대 코드 UX와 개발 로그를 보강했다.
+    - RPC 호출은 `accept_connection_invite`에 `{ invite_token }` raw token 전달 유지
+    - 수락 전 앱에서 raw token을 hash하지 않음
+    - 입력값의 공백/줄바꿈 제거 후 raw token으로 RPC 호출
+    - 생성 화면은 raw token을 한 줄 가로 스크롤로 표시하고 복사 버튼을 유지
+    - `console.error("accept invite failed", error, { tokenLength })` 개발 로그 추가
+    - raw token 전체는 console에 출력하지 않음
+32. 연결 초대 수락 RPC 실패 원인을 확인하고 수정 migration 초안을 작성했다.
+    - 에러: `function digest(text, unknown) does not exist`
+    - 원인: `accept_connection_invite` 함수의 `search_path = public` 상태에서 pgcrypto `digest`를 찾지 못함
+    - 수정 계획: `extensions.digest(invite_token, 'sha256'::text)`로 명시하고 function `search_path`를 `public, extensions`로 재정의
+    - migration file: `supabase/migrations/20260616_fix_accept_invite_digest_schema.sql`
+    - 사용자 승인 전까지 apply_migration은 실행하지 않음
+33. 사용자 승인 후 `fix_accept_invite_digest_schema` migration을 Supabase MCP `apply_migration`으로 적용했다.
+    - target project ref: `zknuyyknmxgrjuipdysf`
+    - target project name: `watseo-app`
+    - `public.accept_connection_invite(text)` 함수가 `extensions.digest(invite_token, 'sha256'::text)`를 사용하도록 교체됨
+    - `authenticated` role execute 권한 확인 완료
+    - 기존 유효 pending invite 2건 유지 확인
+    - `relationships` 상태 분포 조회 결과 row 없음 확인
 
 ## Current Issue
 
-Supabase v1 schema migration, 기본 Auth 연결, 최소 route guard, 도착 장소 DB 연결은 완료했다.
+Supabase v1 schema migration, 기본 Auth 연결, 최소 route guard, 도착 장소 DB 연결, 연결 초대 DB 연결은 완료했다.
 
 - 옛 project ref: `ampgpgsciwkfkjpumtrb`
 - 이 프로젝트는 적용 대상이 아니다.
@@ -98,8 +131,7 @@ Supabase v1 schema migration, 기본 Auth 연결, 최소 route guard, 도착 장
 
 1. 로그인된 사용자의 `/login`, `/role`, `/permissions` 재진입 처리 기준 설계
 2. 온보딩 미완료 사용자의 탭 접근 처리 기준 설계
-3. invite token 생성/해시 저장 흐름 설계
-4. relationships/trips 실제 DB 연결 전 mock data 경계 정리
+3. trips 실제 DB 연결 전 mock data 경계 정리
 
 ## Onboarding State Route Plan
 
