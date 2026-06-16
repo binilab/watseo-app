@@ -7,12 +7,12 @@
 - [ ] `/home`에서 현재 이메일과 닉네임을 확인한다.
 - [ ] 닉네임을 수정하면 `profiles.display_name`이 update된다.
 - [ ] `/places`에서 도착 장소를 등록한다.
-- [ ] `/connections/connect`에서 초대 코드를 생성하고 raw code를 복사한다.
+- [ ] `/connections/connect`에서 초대 코드를 생성하고 복사한다.
 
 ## Account B
 
 - [ ] 회원가입 후 닉네임을 설정한다.
-- [ ] `/connections/invite`에서 A의 raw 초대 코드를 입력한다.
+- [ ] `/connections/invite`에서 A의 초대 코드를 입력한다.
 - [ ] `/connections`에서 A가 연결된 사람으로 보인다.
 - [ ] `/connections` 상단에서 현재 테스트 계정 이메일을 확인할 수 있다.
 
@@ -23,7 +23,7 @@
 - [ ] 도착 장소가 없으면 `/places` 이동 안내가 보인다.
 - [ ] 연결된 사람이 없으면 `/connections` 이동 안내가 보인다.
 - [ ] 도착 장소, 알림 받을 사람 1명 이상, 예상 도착 시간을 모두 선택해야 시작 버튼이 활성화된다.
-- [ ] 귀가 시작 후 `trips` row와 `trip_recipients` row가 생성된다.
+- [ ] 귀가 시작 후 `trips`, `trip_recipients` 테이블에 기록된다.
 - [ ] 성공 후 `/home/active?tripId=...`로 이동한다.
 - [ ] `/home/active`에 tripId가 없으면 최신 active trip을 fallback 조회한다.
 - [ ] active trip이 없으면 안내 문구가 보인다.
@@ -38,7 +38,7 @@
 ## Time Extension
 
 - [ ] A가 `/home/active`에서 시간 연장 요청으로 이동한다.
-- [ ] 연장 요청 생성 시 `time_extension_requests.status = pending` row가 생성된다.
+- [ ] 연장 요청 생성 시 `time_extension_requests.status = pending`으로 기록된다.
 - [ ] 요청 생성 시 `trips.state = extension_requested`가 된다.
 - [ ] 수락 전에는 `trips.expected_arrival_at`이 기존 값으로 유지된다.
 - [ ] B의 `/connections` 확인 중인 귀가 카드에 `연장 수락`, `거절` 버튼이 보인다.
@@ -50,19 +50,20 @@
 ## Help Request
 
 - [ ] A가 `/home/active`에서 도움 요청으로 이동한다.
-- [ ] 도움 요청 시 `help_requests.status = requested` row가 생성된다.
+- [ ] 도움 요청 시 `help_requests.status = requested`로 기록된다.
 - [ ] `trips.state = emergency_requested`로 update된다.
 - [ ] B의 `/connections`에서 도움 요청 상태가 보인다.
 - [ ] 상세 위치, 좌표, 이동 경로는 표시되지 않는다.
 
 ## QR Arrival
 
-- [ ] `/places/qr-code`에서 destination `qr_token` 텍스트와 복사 버튼이 보인다.
+- [ ] `/places`에서 특정 장소의 `QR 보기`를 누르면 `/places/qr-code?destinationId=...`로 이동한다.
+- [ ] `/places/qr-code`에서 장소 이름, QR 코드 값, 복사 버튼이 보인다.
 - [ ] `/home/active`에서 QR 도착 인증으로 이동하면 tripId가 유지된다.
-- [ ] 올바른 qr_token 입력 시 `arrival_verifications.status = succeeded` row가 생성된다.
+- [ ] 올바른 QR 코드 값 입력 시 `arrival_verifications.status = succeeded`로 기록된다.
 - [ ] 성공 후 `trips.state = arrived_partial`, `arrived_at = now`로 update된다.
 - [ ] 성공 후 `/home/partial-verification?tripId=...`로 이동한다.
-- [ ] 잘못된 qr_token은 사용자용 오류만 표시하고 token 전체를 로그에 남기지 않는다.
+- [ ] 잘못된 QR 코드 값은 사용자용 오류만 표시하고 코드 전체를 로그에 남기지 않는다.
 
 ## Cancel And History
 

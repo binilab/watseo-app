@@ -121,7 +121,6 @@ export default function LoginScreen() {
       return;
     }
 
-    // profiles row creation is handled by the DB trigger handle_new_user_profile.
     router.replace({
       pathname: "/role",
       params: { from: "signup" },

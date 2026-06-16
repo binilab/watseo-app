@@ -19,6 +19,7 @@ export default function PlaceQrCodeScreen() {
   const [loading, setLoading] = useState(Boolean(destinationId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const qrCodeValue = destination?.qr_token ?? "";
 
   useEffect(() => {
     let mounted = true;
@@ -63,7 +64,7 @@ export default function PlaceQrCodeScreen() {
     if (!destination) return;
 
     try {
-      await Clipboard.setStringAsync(destination.qr_token);
+      await Clipboard.setStringAsync(qrCodeValue);
       setCopyMessage("복사했어요");
     } catch {
       setCopyMessage("복사가 안 됐어요. 코드를 직접 전달해 주세요");
@@ -135,9 +136,9 @@ export default function PlaceQrCodeScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.tokenScroller}
+            style={styles.codeScroller}
           >
-            <Text selectable style={styles.token}>{destination.qr_token}</Text>
+            <Text selectable style={styles.codeValue}>{qrCodeValue}</Text>
           </ScrollView>
           <AppButton
             icon={Copy}
@@ -187,13 +188,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.md,
   },
-  token: {
+  codeValue: {
     ...typography.caption,
     color: colors.primaryDark,
     fontFamily: "monospace",
     paddingVertical: spacing.sm,
   },
-  tokenScroller: {
+  codeScroller: {
     maxWidth: "100%",
     borderRadius: radius.lg,
     borderWidth: 1,

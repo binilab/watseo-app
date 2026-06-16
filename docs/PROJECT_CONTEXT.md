@@ -58,9 +58,11 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 - persisted onboarding state
 - 탭 route guard: 비로그인 사용자는 `/login`, 온보딩 미완료 사용자는 `/role`
 - 현재 계정 이메일 표시
-- `/home` 닉네임 표시 및 `profiles.display_name` 수정
+- `/home` 현재 사용자 닉네임 기반 인사 표시
+- `/my` 현재 계정 표시 및 `profiles.display_name` 수정
 - `/places` destinations 조회, 추가, 이름 수정
-- `/places/qr-code` selected destination `qr_token` 참조 준비
+- `/places` 장소별 QR 보기 버튼
+- `/places/qr-code` selected destination QR 코드 값 표시 및 복사
 - `/connections` accepted relationships 조회
 - `/connections/connect` connection invite 생성
 - `/connections/invite` accept_connection_invite RPC 수락
@@ -68,10 +70,9 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 - `/home/return-setup` trip_recipients 생성
 - `/home/return-setup` active trip 중복 생성 방지
 - `/home/return-setup` 도착 장소, 알림 받을 사람 1명 이상, 예상 도착 시간 필수
-- `/home/active` created trip id 표시 준비
+- `/home/active` active trip 상태, 예상 도착 시간, 주요 액션 표시
 - `/home/active` trip cancelled update
-- `/places/qr-code` destination qr_token 표시 및 복사
-- `/home/qr-arrival` QR token 입력 검증
+- `/home/qr-arrival` QR 코드 값 입력 검증
 - `/home/partial-verification` arrived_partial trip 표시
 - `notification_events` trip_started / arrived_partial 기록
 - `/connections` recipient active trip 상태 표시

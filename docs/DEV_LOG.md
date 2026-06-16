@@ -207,6 +207,15 @@
     - `/home/qr-arrival` 안내 문구를 QR token 입력/붙여넣기 테스트 흐름에 맞게 수정
     - 홈의 `장소 QR 보기` 버튼은 destinationId 없는 QR 화면이 아니라 `/places`로 이동
     - 수동 테스트 흐름: 장소 탭에서 QR 보기 → QR token 복사 → 내 귀가 상황에서 QR 도착 인증 → 복사한 token 입력 → `trips.state = arrived_partial` 확인
+47. MVP 전체 QA 및 안정화 점검을 진행했다.
+    - 5개 탭(`홈`, `장소`, `연결`, `기록`, `마이`) route guard 흐름을 코드 기준으로 확인
+    - `/history` 진행 중 기록은 `/home/active?tripId=...`로 이동하는 흐름 유지 확인
+    - `/places` QR 보기와 `/home/active` QR 도착 확인이 각각 destinationId/tripId를 유지하는지 확인
+    - 사용자 화면에서 `DB`, `row`, `token`, `trip id`, `개발 중` 같은 개발자용 문구가 보이지 않도록 문구 정리
+    - `/places` 빈 상태에서 상세 주소 표현을 제거하고 장소 이름만 저장한다는 안내로 정리
+    - 마이 탭 버전 표기에서 `개발 중` 문구 제거
+    - 회원가입 코드의 오래된 DB 설명 주석 제거
+    - 큰 리팩토링 없이 mock data 잔존 여부를 확인했으며, 현재 실제 화면에서 쓰지 않는 mock address 데이터는 다음 정리 후보로 남김
 
 ## Current Issue
 

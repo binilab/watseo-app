@@ -152,7 +152,7 @@ export default function PlacesScreen() {
 
         {!loading && destinations.length === 0 ? (
           <EmptyState
-            description="이름만 저장해요. 상세 주소는 저장하지 않아요."
+            description="장소 이름만 간단히 저장해요."
             icon={MapPin}
             title="아직 등록된 장소가 없어요"
           />

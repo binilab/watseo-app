@@ -160,7 +160,7 @@ export default function MyScreen() {
         />
       </Card>
 
-      <Text style={styles.version}>왔어 {APP_VERSION} · 개발 중</Text>
+      <Text style={styles.version}>왔어 {APP_VERSION}</Text>
     </Screen>
   );
 }

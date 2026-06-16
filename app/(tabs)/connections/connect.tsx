@@ -36,6 +36,7 @@ export default function ConnectPersonScreen() {
   const [creating, setCreating] = useState(false);
   const [copying, setCopying] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const inviteCode = createdInvite?.rawToken ?? "";
 
   const handleCreateInvite = async () => {
     if (!user) {
@@ -68,7 +69,7 @@ export default function ConnectPersonScreen() {
 
     setCopying(true);
     try {
-      await Clipboard.setStringAsync(createdInvite.rawToken);
+      await Clipboard.setStringAsync(inviteCode);
       setMessage("복사했어요");
     } catch {
       setMessage("복사가 안 됐어요. 코드를 직접 전달해 주세요");
@@ -142,10 +143,10 @@ export default function ConnectPersonScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.tokenScroller}
+            style={styles.codeScroller}
           >
-            <Text selectable style={styles.token}>
-              {createdInvite.rawToken}
+            <Text selectable style={styles.codeValue}>
+              {inviteCode}
             </Text>
           </ScrollView>
           <Text style={styles.copy}>
@@ -213,13 +214,13 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.68,
   },
-  token: {
+  codeValue: {
     ...typography.caption,
     color: colors.primaryDark,
     fontFamily: "monospace",
     paddingVertical: spacing.sm,
   },
-  tokenScroller: {
+  codeScroller: {
     maxWidth: "100%",
     borderRadius: radius.lg,
     borderWidth: 1,
