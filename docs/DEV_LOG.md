@@ -66,10 +66,15 @@
     - `profiles.permissions_seen_at`
     - 기존 `profiles_update_own` 정책으로 본인 update 가능 확인
     - `src/types/supabase.ts` 업데이트
+25. 최소 Auth route guard를 추가했다.
+    - `(tabs)` 그룹은 session loading 중 로딩 화면 표시
+    - 로그인하지 않은 사용자가 `(tabs)` 내부 화면에 접근하면 `/login`으로 이동
+    - 로그인된 사용자는 `(tabs)` 내부 화면 접근 가능
+    - 로그인 성공 후 `profiles.onboarding_completed`를 조회해 `/home` 또는 `/role`로 분기
 
 ## Current Issue
 
-Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
+Supabase v1 schema migration, 기본 Auth 연결, 최소 route guard는 완료했다.
 
 - 옛 project ref: `ampgpgsciwkfkjpumtrb`
 - 이 프로젝트는 적용 대상이 아니다.
@@ -79,12 +84,12 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 
 ## Next Step
 
-다음 단계는 Auth route guard와 실제 데이터 흐름 연결이다.
+다음 단계는 세부 route guard 정책과 실제 데이터 흐름 연결이다.
 
 진행 전 확인할 작업은 다음과 같다.
 
-1. 로그인 상태에 따른 route guard 설계
-2. 로그인 성공 후 온보딩 상태 기반 분기 구현
+1. 로그인된 사용자의 `/login`, `/role`, `/permissions` 재진입 처리 기준 설계
+2. 온보딩 미완료 사용자의 탭 접근 처리 기준 설계
 3. invite token 생성/해시 저장 흐름 설계
 4. relationships/trips 실제 DB 연결 전 mock data 경계 정리
 
@@ -93,10 +98,11 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 - 회원가입 성공 시 `/role`로 이동한다.
 - `/role`에서 선택 후 `/permissions`로 이동한다.
 - `/permissions` 완료 시 `profiles.permissions_seen`, `profiles.permissions_seen_at`, `profiles.onboarding_completed`, `profiles.onboarding_completed_at`을 update하고 `/home`으로 이동한다.
-- 로그인 성공 시에는 migration 적용 후 `profiles.onboarding_completed`를 조회한다.
+- 로그인 성공 시에는 `profiles.onboarding_completed`를 조회한다.
   - `true`: `/home`
   - `false`: `/role`
-- 전체 route guard는 아직 구현하지 않고 별도 단계에서 설계한다.
+- `(tabs)` 내부 화면은 로그인된 사용자만 접근 가능하다.
+- 전체 세부 route guard 정책은 별도 단계에서 설계한다.
 
 ## Auth Manual Test Checklist
 
@@ -106,6 +112,8 @@ Supabase v1 schema migration과 기본 Auth 연결은 완료했다.
 - `/role`에서 선택 후 `/permissions`로 이동해야 한다.
 - `/permissions`에서 완료 후 `/home`으로 이동해야 한다.
 - `/home`에서 로그아웃 성공 시 `/login`으로 이동해야 한다.
+- 로그인하지 않은 상태에서 `/home`, `/places`, `/connections`, `/history` 접근 시 `/login`으로 이동해야 한다.
+- session loading 중에는 `/login`으로 튕기지 않고 로딩 화면이 보여야 한다.
 - Auth 에러는 Supabase 원문 대신 사용자에게 자연스러운 문구로 보여야 한다.
 - 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 생성한다.
 - 앱 코드에서 `profiles` row를 직접 insert하지 않는다.

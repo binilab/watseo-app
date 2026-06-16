@@ -1,14 +1,35 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 import { Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
+import { Screen } from "@/src/components";
+import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
   colors,
   radius,
   shadows,
   TAB_BAR_BOTTOM_OFFSET,
   TAB_BAR_HEIGHT,
+  typography,
 } from "@/src/theme/tokens";
 
 export default function TabLayout() {
+  const { loading, session } = useAuthSession();
+
+  if (loading) {
+    return (
+      <Screen hasBottomTabs={false} scroll={false}>
+        <View style={styles.loading}>
+          <Text style={styles.loadingTitle}>계정 상태를 확인하고 있어요</Text>
+          <Text style={styles.loadingText}>잠시만 기다려주세요.</Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!session) {
+    return <Redirect href="/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -68,3 +89,21 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 8,
+  },
+  loadingTitle: {
+    ...typography.subheading,
+    color: colors.text,
+    textAlign: "center",
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+});

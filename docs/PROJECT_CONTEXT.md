@@ -34,10 +34,11 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 - AsyncStorage 기반 Auth session 저장
 - 기본 로그아웃 동작
 - persisted onboarding state
+- 최소 Auth route guard
 
 ## Not Implemented Yet
 
-- 전체 route guard
+- 세부 route guard 정책
 - relationships/trips 실제 DB 연결
 - 실제 QR 스캔
 - 실제 위치 권한
@@ -45,7 +46,8 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 
 ## TODO
 
-- 로그인 성공 후 `profiles.onboarding_completed` 값에 따라 `/home` 또는 `/role`로 분기한다.
+- 전체 route guard 정책은 별도 단계에서 설계한다.
+- 로그인된 사용자의 온보딩 화면 재진입 처리 기준을 정한다.
 
 ## Language Rules
 

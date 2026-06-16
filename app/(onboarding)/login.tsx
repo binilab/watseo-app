@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { LogIn, Mail, UserPlus } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
+import { getOnboardingRoute } from "@/src/features/auth/onboarding";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabase";
 import { colors, spacing, typography } from "@/src/theme/tokens";
@@ -47,9 +48,21 @@ export default function LoginScreen() {
   const [isStartingOnboarding, setIsStartingOnboarding] = useState(false);
 
   useEffect(() => {
-    if (session && !isStartingOnboarding) {
-      router.replace("/home");
+    if (!session || isStartingOnboarding) {
+      return;
     }
+
+    let mounted = true;
+
+    getOnboardingRoute(session.user.id).then(({ route }) => {
+      if (mounted) {
+        router.replace(route);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, [isStartingOnboarding, session]);
 
   const trimmedEmail = email.trim();
@@ -64,7 +77,7 @@ export default function LoginScreen() {
     setSubmitting("signIn");
     setMessage(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password,
     });
@@ -76,7 +89,13 @@ export default function LoginScreen() {
       return;
     }
 
-    router.replace("/home");
+    const { error: routeError, route } = await getOnboardingRoute(data.user.id);
+
+    if (routeError) {
+      setMessage("온보딩 상태를 확인하지 못했어요. 사용 방식을 다시 확인해주세요.");
+    }
+
+    router.replace(route);
   }
 
   async function signUp() {
