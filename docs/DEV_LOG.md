@@ -112,6 +112,23 @@
     - `authenticated` role execute 권한 확인 완료
     - 기존 유효 pending invite 2건 유지 확인
     - `relationships` 상태 분포 조회 결과 row 없음 확인
+34. `/home/return-setup` 귀가 세션 생성을 Supabase `trips`, `trip_recipients`에 연결했다.
+    - 현재 로그인 사용자의 `destinations` 조회
+    - 현재 로그인 사용자의 accepted `relationships`와 상대 `profiles` 조회
+    - 도착 장소, 알림 받을 사람, 예상 도착 시간 선택 UI 추가
+    - `trips` insert 값: `owner_id`, `destination_id`, `state = on_the_way`, `expected_arrival_at`, `started_at`
+    - `arrived_at`, `cancelled_at`은 앱에서 insert하지 않음
+    - 선택한 알림 받을 사람은 `trip_recipients`에 `trip_id`, `recipient_id`, `relationship_id`, `added_by`, `notification_enabled = true`로 insert
+    - `notification_events`는 이번 단계에서 생성하지 않음
+35. `/home/active`가 생성된 `tripId` route param을 받아 trip 정보를 표시할 준비를 했다.
+    - 생성 성공 시 `/home/active?tripId=...`로 이동
+    - active 화면은 아직 실시간 데이터 완성 전 단계로, trip id와 예상 도착 시간을 표시
+36. 귀가 세션 생성 테스트 중 active 화면이 실제 trip 없이도 mock처럼 보일 수 있는 문제를 수정했다.
+    - `trips` insert 성공 전에는 `/home/active`로 이동하지 않는 흐름을 재확인
+    - trips insert 실패 로그를 `console.error("create trip failed", error)`로 정리
+    - trip_recipients insert 실패 로그를 `console.error("create trip recipients failed", error)`로 정리
+    - `/home/active`는 `tripId`가 없으면 “진행 중인 귀가 정보를 찾을 수 없어요” 안내를 표시
+    - `/home/active`는 trip 조회 성공 시에만 mock timeline/actions를 표시
 
 ## Current Issue
 

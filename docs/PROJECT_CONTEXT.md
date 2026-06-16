@@ -18,6 +18,8 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 
 `/connections` 연결 관계와 초대 생성/수락은 실제 Supabase `relationships`, `connection_invites`, `accept_connection_invite` RPC에 연결되었다.
 
+`/home/return-setup` 귀가 세션 생성은 실제 Supabase `trips`, `trip_recipients` 테이블에 연결되었다.
+
 현재는 실제 QR 스캔, 위치 권한, 푸시 알림을 붙이기 전 단계이며, 화면 구조와 타입 모델을 안정화하면서 Auth 이후 흐름을 준비하는 상태다.
 
 ## Implemented
@@ -44,11 +46,14 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 - `/connections` accepted relationships 조회
 - `/connections/connect` connection invite 생성
 - `/connections/invite` accept_connection_invite RPC 수락
+- `/home/return-setup` trips 생성
+- `/home/return-setup` trip_recipients 생성
+- `/home/active` created trip id 표시 준비
 
 ## Not Implemented Yet
 
 - 세부 route guard 정책
-- trips 실제 DB 연결
+- notification_events 생성
 - 실제 QR 이미지 생성
 - 실제 QR 스캔
 - 실제 위치 권한
