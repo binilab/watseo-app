@@ -2,7 +2,6 @@
   "expo": {
     "name": "왔어",
     "scheme": "watseo",
-    
     "slug": "watseo-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +13,8 @@
       "backgroundColor": "#0F1B2D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.binilab.watseo-app"
     },
     "android": {
       "adaptiveIcon": {

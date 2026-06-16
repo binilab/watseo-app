@@ -1,6 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  CameraView,
+  useCameraPermissions,
+  type BarcodeScanningResult,
+} from "expo-camera";
 import { CheckCircle2, ScanLine } from "lucide-react-native";
 
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
@@ -32,9 +37,11 @@ function getUserMessageForReason(reason: string) {
 export default function QrArrivalScreen() {
   const { tripId } = useLocalSearchParams<{ tripId?: string }>();
   const { user } = useAuthSession();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
+  const [scanned, setScanned] = useState(false);
   const [qrToken, setQrToken] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -85,13 +92,15 @@ export default function QrArrivalScreen() {
     };
   }, [tripId, user]);
 
-  const handleVerify = async () => {
+  const verifyQrCodeValue = async (qrCodeValue: string) => {
     if (!user || !trip) {
       setMessage("진행 중인 귀가가 없어요.");
       return;
     }
 
-    if (!qrToken.trim()) {
+    const normalizedQrCodeValue = qrCodeValue.trim();
+
+    if (!normalizedQrCodeValue) {
       setMessage("QR 코드를 입력해 주세요");
       return;
     }
@@ -103,7 +112,7 @@ export default function QrArrivalScreen() {
       const result = await verifyTripArrivalByQr({
         tripId: trip.id,
         userId: user.id,
-        qrToken,
+        qrToken: normalizedQrCodeValue,
       });
 
       if (!result.ok) {
@@ -127,6 +136,26 @@ export default function QrArrivalScreen() {
     }
   };
 
+  const handleVerify = async () => {
+    await verifyQrCodeValue(qrToken);
+  };
+
+  const handleBarcodeScanned = (result: BarcodeScanningResult) => {
+    if (scanned || verifying) return;
+
+    setScanned(true);
+    setQrToken(result.data.trim());
+    void verifyQrCodeValue(result.data);
+  };
+
+  const handleScanAgain = () => {
+    setScanned(false);
+    setMessage(null);
+  };
+
+  const cameraReady = Boolean(cameraPermission?.granted);
+  const canScan = Boolean(trip && cameraReady && !scanned && !verifying);
+
   return (
     <Screen
       footer={
@@ -143,27 +172,74 @@ export default function QrArrivalScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>QR로 도착 확인</Text>
         <Text style={styles.description}>
-          장소에 붙여둔 QR 코드를 입력하면 도착이 확인돼요.
+          카메라로 QR을 비추면 바로 확인돼요.
         </Text>
       </View>
 
       <Card tone="blue" style={styles.scannerCard}>
-        <View style={styles.scanBox}>
-          {loading ? (
+        <Text style={styles.cardTitle}>카메라로 QR 스캔</Text>
+
+        {loading || !cameraPermission ? (
+          <View style={styles.scanBox}>
             <ActivityIndicator color={colors.primaryDark} />
-          ) : (
-            <ScanLine color={colors.primaryDark} size={72} strokeWidth={1.8} />
-          )}
-        </View>
+          </View>
+        ) : null}
+
+        {!loading && cameraPermission && !cameraPermission.granted ? (
+          <View style={styles.permissionBox}>
+            <ScanLine color={colors.primaryDark} size={48} strokeWidth={1.8} />
+            <Text style={styles.scanText}>카메라 권한이 필요해요</Text>
+            <Text style={styles.permissionText}>
+              설정에서 권한을 허용하거나, 아래에 코드를 직접 입력할 수 있어요.
+            </Text>
+            {cameraPermission.canAskAgain ? (
+              <AppButton
+                onPress={() => void requestCameraPermission()}
+                size="md"
+                title="카메라 권한 허용"
+                variant="secondary"
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {!loading && cameraReady ? (
+          <View style={styles.cameraFrame}>
+            <CameraView
+              active={Boolean(trip && !verifying)}
+              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+              facing="back"
+              onBarcodeScanned={canScan ? handleBarcodeScanned : undefined}
+              onMountError={(event) => {
+                console.error("camera mount failed", { message: event.message });
+                setMessage("카메라를 열지 못했어요. 아래에 코드를 직접 입력해 주세요.");
+              }}
+              style={styles.camera}
+            />
+            <View style={styles.scanGuide} pointerEvents="none">
+              <View style={styles.scanGuideBox} />
+            </View>
+          </View>
+        ) : null}
+
         <Text style={styles.scanText}>
           {trip
-            ? "장소 탭에서 QR 코드를 복사할 수 있어요."
+            ? "QR을 네모 안에 맞춰주세요."
             : "잠깐만요, 확인하고 있어요."}
         </Text>
+
+        {scanned && !verifying ? (
+          <AppButton
+            onPress={handleScanAgain}
+            size="md"
+            title="다시 스캔하기"
+            variant="secondary"
+          />
+        ) : null}
       </Card>
 
       <Card>
-        <Text style={styles.cardTitle}>QR 코드</Text>
+        <Text style={styles.cardTitle}>코드를 직접 입력할 수도 있어요</Text>
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
@@ -202,7 +278,7 @@ const styles = StyleSheet.create({
   },
   scannerCard: {
     alignItems: "center",
-    gap: spacing.xl,
+    gap: spacing.md,
   },
   scanBox: {
     width: 220,
@@ -214,6 +290,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.white,
+  },
+  permissionBox: {
+    width: "100%",
+    alignItems: "center",
+    gap: spacing.md,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+  },
+  permissionText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  cameraFrame: {
+    width: "100%",
+    height: 230,
+    borderRadius: radius.xl,
+    overflow: "hidden",
+    backgroundColor: colors.text,
+  },
+  camera: {
+    flex: 1,
+  },
+  scanGuide: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scanGuideBox: {
+    width: 158,
+    height: 158,
+    borderRadius: radius.lg,
+    borderWidth: 3,
+    borderColor: colors.white,
+    backgroundColor: "transparent",
   },
   scanText: {
     ...typography.body,

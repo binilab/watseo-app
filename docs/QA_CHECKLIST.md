@@ -58,12 +58,17 @@
 ## QR Arrival
 
 - [ ] `/places`에서 특정 장소의 `QR 보기`를 누르면 `/places/qr-code?destinationId=...`로 이동한다.
-- [ ] `/places/qr-code`에서 장소 이름, QR 코드 값, 복사 버튼이 보인다.
+- [ ] `/places/qr-code`에서 장소 이름, 실제 QR 이미지, QR 코드 값, 복사 버튼이 보인다.
 - [ ] `/home/active`에서 QR 도착 인증으로 이동하면 tripId가 유지된다.
+- [ ] 카메라 권한 요청이 보이고, 허용 시 QR 스캔 영역이 보인다.
+- [ ] 카메라 권한을 거부해도 수동 입력이 가능하다.
+- [ ] QR 스캔 성공 시 기존 도착 확인 흐름과 동일하게 처리된다.
+- [ ] QR 스캔 실패 후 `다시 스캔하기`로 재시도할 수 있다.
 - [ ] 올바른 QR 코드 값 입력 시 `arrival_verifications.status = succeeded`로 기록된다.
 - [ ] 성공 후 `trips.state = arrived_partial`, `arrived_at = now`로 update된다.
 - [ ] 성공 후 `/home/partial-verification?tripId=...`로 이동한다.
 - [ ] 잘못된 QR 코드 값은 사용자용 오류만 표시하고 코드 전체를 로그에 남기지 않는다.
+- [ ] 시뮬레이터에서 카메라가 제한되면 수동 입력으로 흐름을 검증한다.
 
 ## Cancel And History
 

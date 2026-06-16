@@ -216,6 +216,25 @@
     - 마이 탭 버전 표기에서 `개발 중` 문구 제거
     - 회원가입 코드의 오래된 DB 설명 주석 제거
     - 큰 리팩토링 없이 mock data 잔존 여부를 확인했으며, 현재 실제 화면에서 쓰지 않는 mock address 데이터는 다음 정리 후보로 남김
+48. QR 도착 확인에 카메라 스캔 fallback 구조를 추가했다.
+    - `expo-camera`를 Expo SDK 56 호환 버전으로 설치
+    - `/home/qr-arrival`에 `CameraView` 기반 QR 스캔 영역 추가
+    - `useCameraPermissions`로 카메라 권한 상태를 확인하고, 거부 시 수동 입력을 계속 사용할 수 있도록 안내
+    - `barcodeScannerSettings={{ barcodeTypes: ["qr"] }}`로 QR만 스캔
+    - 스캔 결과는 기존 `verifyTripArrivalByQr` 인증 로직에 그대로 전달
+    - 처리 중 중복 스캔을 막고, 실패 후 `다시 스캔하기`로 재시도 가능
+    - raw QR 코드 전체는 console에 출력하지 않음
+    - `/places/qr-code`는 현재 QR 이미지 생성 전 단계라 QR 코드 값 복사 fallback을 유지
+    - Expo Go/시뮬레이터 환경에서는 카메라 동작이 제한될 수 있으므로 실제 기기 테스트가 필요할 수 있음
+    - 시뮬레이터에서는 기존 수동 입력 fallback으로 QR 인증 흐름을 검증 가능
+49. 장소 QR 화면에 실제 QR 이미지 렌더링을 추가했다.
+    - `react-native-svg`, `react-native-qrcode-svg` 설치 상태 확인
+    - `/places/qr-code`에서 `react-native-qrcode-svg`의 `QRCode` 컴포넌트 렌더링
+    - QR `value`는 `destinations.qr_token` 값을 그대로 사용
+    - QR 이미지 주변에 흰색 여백과 카드 여백을 추가
+    - 기존 QR 코드 값 표시와 복사 버튼은 수동 입력 fallback으로 유지
+    - `/home/qr-arrival` 카메라 스캔 결과가 같은 QR 코드 값으로 기존 인증 로직에 전달되는 구조 확인
+    - native dependency가 추가되었으므로 development build 재실행 필요
 
 ## Current Issue
 

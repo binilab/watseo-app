@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Copy, MapPin, RotateCw } from "lucide-react-native";
-
-import { AppButton, Card, Screen, SectionHeader, StatusChip } from "@/src/components";
+import QRCode from "react-native-qrcode-svg";
+import { AppButton, Card, EmptyState, Screen, SectionHeader, StatusChip } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
   fetchDestinationById,
@@ -79,16 +79,13 @@ export default function PlaceQrCodeScreen() {
       />
 
       {!destinationId ? (
-        <Card tone="warm">
-          <Text style={styles.cardTitle}>먼저 장소를 선택해주세요</Text>
-          <Text style={styles.copy}>
-            장소 목록에서 먼저 골라주세요.
-          </Text>
-          <AppButton
+        <Card>
+          <EmptyState
+            actionLabel="장소 목록으로"
+            description="장소 목록에서 먼저 골라주세요."
             icon={MapPin}
-            onPress={() => router.replace("/places")}
-            title="장소 목록으로"
-            variant="secondary"
+            onActionPress={() => router.replace("/places")}
+            title="먼저 장소를 선택해주세요"
           />
         </Card>
       ) : null}
@@ -117,22 +114,30 @@ export default function PlaceQrCodeScreen() {
       ) : null}
 
       {errorMessage ? (
-        <Card tone="warm">
-          <Text style={styles.cardTitle}>다시 확인이 필요해요</Text>
-          <Text style={styles.copy}>{errorMessage}</Text>
-          <AppButton
+        <Card>
+          <EmptyState
+            actionLabel="장소 목록으로"
+            description={errorMessage}
             icon={RotateCw}
-            onPress={() => router.replace("/places")}
-            title="장소 목록으로"
-            variant="secondary"
+            onActionPress={() => router.replace("/places")}
+            title="다시 확인이 필요해요"
           />
         </Card>
       ) : null}
 
       {destination ? (
-        <Card>
+        <Card style={styles.qrImageCard}>
           <Text style={styles.cardTitle}>{destination.name}</Text>
-          <Text style={styles.copy}>이 장소의 QR 코드예요.</Text>
+          <Text style={styles.copy}>이 장소에 붙여둘 QR 코드예요.</Text>
+          <View style={styles.qrImageWrap}>
+            <QRCode
+              backgroundColor={colors.white}
+              color={colors.text}
+              quietZone={18}
+              size={210}
+              value={qrCodeValue}
+            />
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -151,10 +156,10 @@ export default function PlaceQrCodeScreen() {
 
       {destination ? (
         <Card>
-        <Text style={styles.cardTitle}>안내</Text>
-        <Text style={styles.copy}>
-          지금은 QR 이미지 대신 코드를 복사해서 써요.
-        </Text>
+          <Text style={styles.cardTitle}>안내</Text>
+          <Text style={styles.copy}>
+            카메라로 스캔하거나, 코드 복사 후 직접 입력할 수 있어요.
+          </Text>
         </Card>
       ) : null}
 
@@ -172,6 +177,20 @@ export default function PlaceQrCodeScreen() {
 const styles = StyleSheet.create({
   qrCard: {
     alignItems: "center",
+  },
+  qrImageCard: {
+    alignItems: "center",
+  },
+  qrImageWrap: {
+    width: 250,
+    height: 250,
+    borderRadius: radius.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
   },
   cardTitle: {
     ...typography.subheading,

@@ -22,7 +22,7 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 
 v1 정책상 한 사용자당 진행 중 귀가는 1개만 허용한다. active 상태는 `on_the_way`, `late`, `extension_requested`, `emergency_requested`이며 `arrived_partial`과 `cancelled`는 active에서 제외한다.
 
-QR 도착 인증은 실제 Supabase `arrival_verifications` insert와 `trips` 상태 update에 연결되었다.
+QR 도착 인증은 카메라 스캔과 수동 입력 fallback을 지원하며, 실제 Supabase `arrival_verifications` insert와 `trips` 상태 update에 연결되었다.
 
 연결된 사람 대시보드는 recipient로 포함된 진행 중 귀가 상태를 실제 `trip_recipients`, `trips`, `profiles` 데이터로 표시한다.
 
@@ -62,7 +62,7 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 - `/my` 현재 계정 표시 및 `profiles.display_name` 수정
 - `/places` destinations 조회, 추가, 이름 수정
 - `/places` 장소별 QR 보기 버튼
-- `/places/qr-code` selected destination QR 코드 값 표시 및 복사
+- `/places/qr-code` selected destination QR 이미지 렌더링, QR 코드 값 표시 및 복사
 - `/connections` accepted relationships 조회
 - `/connections/connect` connection invite 생성
 - `/connections/invite` accept_connection_invite RPC 수락
@@ -72,7 +72,7 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 - `/home/return-setup` 도착 장소, 알림 받을 사람 1명 이상, 예상 도착 시간 필수
 - `/home/active` active trip 상태, 예상 도착 시간, 주요 액션 표시
 - `/home/active` trip cancelled update
-- `/home/qr-arrival` QR 코드 값 입력 검증
+- `/home/qr-arrival` 카메라 QR 스캔 및 QR 코드 값 수동 입력 검증
 - `/home/partial-verification` arrived_partial trip 표시
 - `notification_events` trip_started / arrived_partial 기록
 - `/connections` recipient active trip 상태 표시
@@ -93,8 +93,6 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 
 - 도움 요청 확인 처리
 - 귀가 기록 상세 화면
-- 실제 QR 이미지 생성
-- 실제 QR 스캔
 - location verification
 - 실제 위치 권한
 - 실제 푸시 알림
