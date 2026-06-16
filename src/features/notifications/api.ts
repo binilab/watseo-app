@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import type { Database, Json } from "@/src/types/supabase";
 
 type NotificationEventInsert =
@@ -74,9 +75,9 @@ export async function createTripNotificationEvents(
   const { error } = await client.from("notification_events").insert(events);
 
   if (error) {
-    console.error("create notification events failed", error, {
+    logFriendlyError("알림 기록 확인", error, {
       eventType: input.notificationType,
-      recipientCount: input.recipientIds.length,
+      targetCount: input.recipientIds.length,
       tripId: input.tripId,
     });
   }

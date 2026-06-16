@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
 import { createTripNotificationEvents } from "@/src/features/notifications/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import type { Database } from "@/src/types/supabase";
 
 type ArrivalVerificationInsert =
@@ -27,6 +28,8 @@ export type VerifyTripArrivalByQrResult =
         | "trip_not_found"
         | "destination_not_found"
         | "token_mismatch"
+        | "already_arrived"
+        | "trip_cancelled"
         | "verification_insert_failed"
         | "trip_update_failed"
         | "unknown";
@@ -63,10 +66,9 @@ export async function verifyTripArrivalByQr(
     .maybeSingle();
 
   if (tripResult.error || !tripResult.data) {
-    console.error("qr arrival failed", {
+    logFriendlyError("QR 도착 확인", tripResult.error, {
       reason: "trip_not_found",
       tripId: input.tripId,
-      error: tripResult.error,
     });
 
     return {
@@ -74,6 +76,17 @@ export async function verifyTripArrivalByQr(
       reason: "trip_not_found",
       error: tripResult.error,
     };
+  }
+
+  if (
+    tripResult.data.state === "arrived_partial"
+    || tripResult.data.state === "arrived_verified"
+  ) {
+    return { ok: false, reason: "already_arrived" };
+  }
+
+  if (tripResult.data.state === "cancelled") {
+    return { ok: false, reason: "trip_cancelled" };
   }
 
   const destinationResult = await client
@@ -84,11 +97,10 @@ export async function verifyTripArrivalByQr(
     .maybeSingle();
 
   if (destinationResult.error || !destinationResult.data) {
-    console.error("qr arrival failed", {
+    logFriendlyError("QR 도착 장소 확인", destinationResult.error, {
+      destinationId: tripResult.data.destination_id,
       reason: "destination_not_found",
       tripId: input.tripId,
-      destinationId: tripResult.data.destination_id,
-      error: destinationResult.error,
     });
 
     return {
@@ -99,12 +111,6 @@ export async function verifyTripArrivalByQr(
   }
 
   if (destinationResult.data.qr_token !== qrToken) {
-    console.error("qr arrival failed", {
-      reason: "token_mismatch",
-      tripId: input.tripId,
-      inputTokenLength: qrToken.length,
-    });
-
     return { ok: false, reason: "token_mismatch" };
   }
 
@@ -125,10 +131,9 @@ export async function verifyTripArrivalByQr(
     .single();
 
   if (verificationResult.error) {
-    console.error("qr arrival failed", {
+    logFriendlyError("QR 도착 기록 확인", verificationResult.error, {
       reason: "verification_insert_failed",
       tripId: input.tripId,
-      error: verificationResult.error,
     });
 
     return {
@@ -151,10 +156,9 @@ export async function verifyTripArrivalByQr(
     .single();
 
   if (updateResult.error) {
-    console.error("qr arrival failed", {
+    logFriendlyError("QR 도착 상태 확인", updateResult.error, {
       reason: "trip_update_failed",
       tripId: input.tripId,
-      error: updateResult.error,
     });
 
     return {
@@ -170,9 +174,8 @@ export async function verifyTripArrivalByQr(
     .eq("trip_id", tripResult.data.id);
 
   if (recipientsResult.error) {
-    console.error("load trip recipients for notification failed", {
+    logFriendlyError("QR 도착 알림 대상 확인", recipientsResult.error, {
       tripId: input.tripId,
-      error: recipientsResult.error,
     });
   } else {
     await createTripNotificationEvents({

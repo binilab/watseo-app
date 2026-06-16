@@ -10,6 +10,7 @@ import {
   updateProfileDisplayName,
   type Profile,
 } from "@/src/features/profile/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 const APP_VERSION = "1.0.0";
@@ -39,7 +40,7 @@ export default function MyScreen() {
         if (!mounted) return;
 
         if (error) {
-          console.error("fetch profile failed", error);
+          logFriendlyError("프로필 확인", error);
           setProfile(null);
           return;
         }
@@ -74,7 +75,7 @@ export default function MyScreen() {
     setSavingNickname(false);
 
     if (error || !data) {
-      console.error("update profile display name failed", error);
+      logFriendlyError("닉네임 저장 확인", error);
       setProfileMessage("저장이 안 됐어요. 잠시 뒤 다시 해주세요");
       return;
     }

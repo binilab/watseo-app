@@ -8,30 +8,45 @@ import {
   acceptConnectionInvite,
   normalizeInviteToken,
 } from "@/src/features/connections/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
-function getAcceptErrorMessage(message?: string) {
-  if (!message) {
-    return "초대 코드를 확인해 주세요";
+function getAcceptErrorMessage(error: unknown) {
+  const message =
+    typeof (error as { message?: unknown })?.message === "string"
+      ? (error as { message: string }).message
+      : "";
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("own invite")
+    || normalizedMessage.includes("cannot accept own")
+  ) {
+    return "내가 만든 초대는 수락할 수 없어요.";
   }
 
-  if (message.includes("own invite")) {
-    return "내가 만든 초대 코드는 수락할 수 없어요";
+  if (
+    normalizedMessage.includes("not available")
+    || normalizedMessage.includes("expired")
+    || normalizedMessage.includes("already accepted")
+    || normalizedMessage.includes("already used")
+  ) {
+    return "이미 사용됐거나 만료된 초대예요.";
   }
 
-  if (message.includes("not available")) {
-    return "이미 사용했거나 만료된 코드예요";
+  if (normalizedMessage.includes("required")) {
+    return "초대 코드를 입력해 주세요.";
   }
 
-  if (message.includes("required")) {
-    return "초대 코드를 입력해 주세요";
+  if (normalizedMessage.includes("already exists")) {
+    return "이미 연결된 사람이에요.";
   }
 
-  if (message.includes("already exists")) {
-    return "이미 연결된 사람이에요";
+  if (normalizedMessage.includes("not found") || normalizedMessage.includes("invalid")) {
+    return "초대 코드를 확인해 주세요.";
   }
 
-  return "초대 코드를 확인해 주세요";
+  return "초대를 수락하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 }
 
 export default function InviteAcceptScreen() {
@@ -56,20 +71,20 @@ export default function InviteAcceptScreen() {
       const { error } = await acceptConnectionInvite(normalizedToken);
 
       if (error) {
-        console.error("accept invite failed", error, {
-          tokenLength: normalizedToken.length,
+        logFriendlyError("초대 수락 확인", error, {
+          codeLength: normalizedToken.length,
         });
-        setMessage(getAcceptErrorMessage(error.message));
+        setMessage(getAcceptErrorMessage(error));
         return;
       }
 
       setAccepted(true);
       setMessage("연결됐어요");
     } catch (error) {
-      console.error("accept invite failed", error, {
-        tokenLength: normalizedToken.length,
+      logFriendlyError("초대 수락 확인", error, {
+        codeLength: normalizedToken.length,
       });
-      setMessage("연결이 안 됐어요. 잠시 뒤 다시 해주세요");
+      setMessage("초대를 수락하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     } finally {
       setAccepting(false);
     }

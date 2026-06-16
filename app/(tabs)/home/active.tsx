@@ -11,6 +11,7 @@ import {
   fetchTripById,
   type Trip,
 } from "@/src/features/trips/api";
+import { showFriendlyAlert } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
@@ -107,7 +108,7 @@ export default function ActiveReturnScreen() {
     }, [authLoading, tripId, user]),
   );
 
-  async function handleCancelTrip() {
+  async function performCancelTrip() {
     if (!user || !trip) {
       setErrorMessage("귀가 정보를 찾을 수 없어요.");
       return;
@@ -121,11 +122,28 @@ export default function ActiveReturnScreen() {
     setCancelling(false);
 
     if (error) {
-      setErrorMessage("귀가를 멈추지 못했어요. 잠시 뒤 다시 해주세요");
+      setErrorMessage("귀가를 종료하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
       return;
     }
 
     router.replace("/home");
+  }
+
+  function handleCancelTrip() {
+    showFriendlyAlert({
+      actions: [
+        { style: "cancel", text: "계속하기" },
+        {
+          onPress: () => {
+            void performCancelTrip();
+          },
+          style: "destructive",
+          text: "귀가 그만하기",
+        },
+      ],
+      message: "기록에는 취소된 귀가로 남아요.",
+      title: "귀가를 그만할까요?",
+    });
   }
 
   return (

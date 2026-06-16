@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import type { Database } from "@/src/types/supabase";
 
 export type HistoryTrip = Database["public"]["Tables"]["trips"]["Row"];
@@ -59,7 +60,7 @@ export async function getTripHistory(userId: string) {
     .order("created_at", { ascending: false });
 
   if (tripsResult.error) {
-    console.error("fetch trip history failed", tripsResult.error, {
+    logFriendlyError("귀가 기록 확인", tripsResult.error, {
       step: "trips",
     });
 
@@ -119,7 +120,7 @@ export async function getTripHistory(userId: string) {
     ?? timeExtensionRequestsResult.error;
 
   if (firstError) {
-    console.error("fetch trip history failed", firstError, {
+    logFriendlyError("귀가 기록 상세 확인", firstError, {
       step: "related_records",
     });
 

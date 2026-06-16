@@ -5,17 +5,22 @@ import { LogIn, Mail, UserPlus } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { getOnboardingRoute } from "@/src/features/auth/onboarding";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabase";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 
-function getAuthMessage(message: string, mode: "signIn" | "signUp") {
+function getAuthMessage(error: unknown, mode: "signIn" | "signUp") {
+  const message =
+    typeof (error as { message?: unknown })?.message === "string"
+      ? (error as { message: string }).message
+      : "";
   const normalizedMessage = message.toLowerCase();
 
   if (
     normalizedMessage.includes("invalid login credentials") ||
     normalizedMessage.includes("invalid credentials")
   ) {
-    return "이메일이나 비밀번호가 맞지 않아요.";
+    return "이메일 또는 비밀번호를 확인해 주세요.";
   }
 
   if (normalizedMessage.includes("email not confirmed")) {
@@ -35,8 +40,8 @@ function getAuthMessage(message: string, mode: "signIn" | "signUp") {
   }
 
   return mode === "signIn"
-    ? "로그인이 안 됐어요. 다시 확인해 주세요"
-    : "계정을 만들지 못했어요. 잠시 뒤 다시 해주세요";
+    ? "이메일 또는 비밀번호를 확인해 주세요."
+    : "가입 정보를 다시 확인해 주세요.";
 }
 
 export default function LoginScreen() {
@@ -77,25 +82,31 @@ export default function LoginScreen() {
     setSubmitting("signIn");
     setMessage(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
 
-    setSubmitting(null);
+      setSubmitting(null);
 
-    if (error) {
-      setMessage(getAuthMessage(error.message, "signIn"));
-      return;
+      if (error) {
+        setMessage(getAuthMessage(error, "signIn"));
+        return;
+      }
+
+      const { error: routeError, route } = await getOnboardingRoute(data.user.id);
+
+      if (routeError) {
+        setMessage("사용 방식을 다시 확인해 주세요");
+      }
+
+      router.replace(route);
+    } catch (error) {
+      logFriendlyError("로그인 확인", error);
+      setSubmitting(null);
+      setMessage("잠시 뒤 다시 시도해 주세요.");
     }
-
-    const { error: routeError, route } = await getOnboardingRoute(data.user.id);
-
-    if (routeError) {
-      setMessage("사용 방식을 다시 확인해 주세요");
-    }
-
-    router.replace(route);
   }
 
   async function signUp() {
@@ -108,23 +119,30 @@ export default function LoginScreen() {
     setIsStartingOnboarding(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.signUp({
-      email: trimmedEmail,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+      });
 
-    setSubmitting(null);
+      setSubmitting(null);
 
-    if (error) {
+      if (error) {
+        setIsStartingOnboarding(false);
+        setMessage(getAuthMessage(error, "signUp"));
+        return;
+      }
+
+      router.replace({
+        pathname: "/role",
+        params: { from: "signup" },
+      });
+    } catch (error) {
+      logFriendlyError("회원가입 확인", error);
+      setSubmitting(null);
       setIsStartingOnboarding(false);
-      setMessage(getAuthMessage(error.message, "signUp"));
-      return;
+      setMessage("잠시 뒤 다시 시도해 주세요.");
     }
-
-    router.replace({
-      pathname: "/role",
-      params: { from: "signup" },
-    });
   }
 
   return (

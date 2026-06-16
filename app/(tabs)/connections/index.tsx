@@ -20,6 +20,7 @@ import {
 } from "@/src/features/connections/api";
 import { useConnections } from "@/src/features/connections/useConnections";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 import type { StatusTone } from "@/src/types";
 
@@ -60,6 +61,15 @@ function formatExpectedArrival(value?: string) {
 
 function getConnectedProfileId(connection: ConnectedPerson) {
   return connection.profile?.id;
+}
+
+function isAlreadyHandledRequestError(error: unknown) {
+  const message =
+    typeof (error as { message?: unknown })?.message === "string"
+      ? (error as { message: string }).message
+      : "";
+
+  return message.toLowerCase().includes("pending");
 }
 
 function ConnectionRow({
@@ -131,11 +141,14 @@ export default function ConnectionsDashboardScreen() {
     setRespondingRequestId(null);
 
     if (error) {
-      console.error("respond time extension request failed", {
-        code: "code" in error ? error.code : null,
-        message: error.message,
+      logFriendlyError("시간 연장 응답 확인", error, {
+        responseStatus,
       });
-      setActionMessage("처리가 안 됐어요. 잠시 뒤 다시 해주세요");
+      setActionMessage(
+        isAlreadyHandledRequestError(error)
+          ? "이미 확인된 요청이에요."
+          : "응답을 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+      );
       return;
     }
 

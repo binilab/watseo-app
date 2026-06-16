@@ -51,14 +51,14 @@ export default function ConnectPersonScreen() {
       const { data, error } = await createConnectionInvite(user.id, relationshipType);
 
       if (error || !data) {
-        setMessage("초대 코드를 만들지 못했어요. 잠시 뒤 다시 해주세요");
+        setMessage("초대를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.");
         return;
       }
 
       setCreatedInvite(data);
       setMessage("초대 코드를 만들었어요");
     } catch {
-      setMessage("초대 코드를 만들지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("초대를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     } finally {
       setCreating(false);
     }

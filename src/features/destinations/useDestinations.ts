@@ -25,8 +25,8 @@ type DestinationsState = {
   renameDestination: (destinationId: string, name: string) => Promise<DestinationResult>;
 };
 
-const LOAD_ERROR_MESSAGE = "장소 목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.";
-const SAVE_ERROR_MESSAGE = "장소를 저장하지 못했어요. 잠시 후 다시 시도해주세요.";
+const LOAD_ERROR_MESSAGE = "정보를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.";
+const SAVE_ERROR_MESSAGE = "장소를 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 
 function toError(error: unknown, fallback: string) {
   if (error instanceof Error) {

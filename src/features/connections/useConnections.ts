@@ -18,7 +18,7 @@ type ConnectionsState = {
   refreshConnections: () => Promise<void>;
 };
 
-const LOAD_ERROR_MESSAGE = "연결 목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.";
+const LOAD_ERROR_MESSAGE = "정보를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 
 export function useConnections(): ConnectionsState {
   const { user } = useAuthSession();

@@ -50,7 +50,7 @@ export default function PlacesScreen() {
     const { data, error } = await addDestination(trimmedNewPlaceName);
 
     if (error) {
-      setFormMessage("추가가 안 됐어요. 잠시 뒤 다시 해주세요");
+      setFormMessage("장소를 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
       return;
     }
 
@@ -82,7 +82,7 @@ export default function PlacesScreen() {
     const { data, error } = await renameDestination(selectedDestination.id, trimmedEditingName);
 
     if (error) {
-      setFormMessage("수정이 안 됐어요. 잠시 뒤 다시 해주세요");
+      setFormMessage("장소를 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
       return;
     }
 

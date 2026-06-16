@@ -6,6 +6,7 @@ import { ActiveTripCard, AppButton, Card, ListItem, Screen } from "@/src/compone
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { fetchProfile } from "@/src/features/profile/api";
 import { fetchLatestActiveTrip, type Trip } from "@/src/features/trips/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
@@ -46,14 +47,14 @@ export default function HomeScreen() {
         if (!mounted) return;
 
         if (activeTripResult.error) {
-          console.error("fetch latest active trip failed", activeTripResult.error);
+          logFriendlyError("진행 중인 귀가 확인", activeTripResult.error);
           setActiveTrip(null);
         } else {
           setActiveTrip(activeTripResult.data ?? null);
         }
 
         if (profileResult.error) {
-          console.error("fetch profile failed", profileResult.error);
+          logFriendlyError("프로필 확인", profileResult.error);
           setDisplayName(null);
         } else {
           setDisplayName(profileResult.data?.display_name ?? null);

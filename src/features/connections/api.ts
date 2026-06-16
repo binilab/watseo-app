@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import * as Crypto from "expo-crypto";
 
 import { supabase } from "@/src/lib/supabase";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import type { Database } from "@/src/types/supabase";
 
 export type Relationship = Database["public"]["Tables"]["relationships"]["Row"];
@@ -214,7 +215,7 @@ export async function fetchRecipientActiveTrips(userId: string) {
     .order("created_at", { ascending: false });
 
   if (pendingRequestsResult.error) {
-    console.error("fetch pending time extension requests failed", pendingRequestsResult.error);
+    logFriendlyError("시간 연장 요청 확인", pendingRequestsResult.error);
   }
 
   const pendingRequestByTripId = new Map<
@@ -269,9 +270,8 @@ export async function createConnectionInvite(
     .single();
 
   if (error) {
-    console.error("create invite failed", error, {
-      rawTokenLength: rawToken.length,
-      tokenHashPrefix: tokenHash.slice(0, 8),
+    logFriendlyError("초대 생성 확인", error, {
+      codeLength: rawToken.length,
     });
   }
 

@@ -11,6 +11,7 @@ import {
   requestHelp,
   type Trip,
 } from "@/src/features/trips/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
@@ -69,7 +70,7 @@ export default function HelpRequestScreen() {
         setTrip(tripResult.data);
       } catch (error) {
         if (!mounted) return;
-        console.error("load trip for help request failed", error);
+        logFriendlyError("도움 요청 귀가 확인", error);
         setTrip(null);
         setMessage("귀가 정보를 불러오지 못했어요.");
       } finally {
@@ -92,6 +93,11 @@ export default function HelpRequestScreen() {
       return;
     }
 
+    if (trip.state === "emergency_requested") {
+      setMessage("이미 도움 요청을 보냈어요.");
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
 
@@ -102,7 +108,7 @@ export default function HelpRequestScreen() {
       });
 
       if (error || !data) {
-        setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
+        setMessage("도움 요청을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.");
         return;
       }
 
@@ -114,10 +120,10 @@ export default function HelpRequestScreen() {
         },
       });
     } catch (error) {
-      console.error("request help failed", error, {
+      logFriendlyError("도움 요청 확인", error, {
         tripId: trip.id,
       });
-      setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
+      setMessage("도움 요청을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -128,11 +134,11 @@ export default function HelpRequestScreen() {
       footer={
         <View style={styles.footer}>
           <AppButton
-            disabled={!trip}
+            disabled={!trip || trip.state === "emergency_requested"}
             icon={MessageCircleWarning}
             loading={submitting}
             onPress={handleRequestHelp}
-            title="도움 요청하기"
+            title={trip?.state === "emergency_requested" ? "이미 알렸어요" : "도움 요청하기"}
             variant="danger"
           />
           <AppButton

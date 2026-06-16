@@ -11,6 +11,7 @@ import {
   requestTimeExtension,
   type Trip,
 } from "@/src/features/trips/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
@@ -72,7 +73,7 @@ export default function TimeExtensionScreen() {
         }
       } catch (error) {
         if (!mounted) return;
-        console.error("fetch active trip for time extension failed", error);
+        logFriendlyError("시간 연장 귀가 확인", error);
         setTrip(null);
         setMessage("진행 중인 귀가가 없어요.");
       } finally {
@@ -107,7 +108,7 @@ export default function TimeExtensionScreen() {
     setSubmitting(false);
 
     if (error || !data) {
-      setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
+      setMessage("도착 시간 변경을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.");
       return;
     }
 

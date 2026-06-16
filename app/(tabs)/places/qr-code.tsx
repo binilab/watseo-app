@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Copy, MapPin, RotateCw } from "lucide-react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import { AppButton, Card, Screen, SectionHeader, StatusChip } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
@@ -130,9 +131,21 @@ export default function PlaceQrCodeScreen() {
       ) : null}
 
       {destination ? (
-        <Card>
+        <Card style={styles.qrImageCard}>
           <Text style={styles.cardTitle}>{destination.name}</Text>
-          <Text style={styles.copy}>이 장소의 QR 코드예요.</Text>
+          <Text style={styles.copy}>장소에 붙여둘 QR 코드예요.</Text>
+          <View style={styles.qrImageWrap}>
+            <QRCode
+              backgroundColor={colors.white}
+              color={colors.text}
+              quietZone={18}
+              size={210}
+              value={qrCodeValue}
+            />
+          </View>
+          <Text style={styles.copy}>
+            이 QR 코드를 장소에 붙여두면 도착 확인에 사용할 수 있어요.
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -143,18 +156,9 @@ export default function PlaceQrCodeScreen() {
           <AppButton
             icon={Copy}
             onPress={handleCopyQrToken}
-            title="QR 코드 복사"
+            title="코드 복사"
           />
           {copyMessage ? <Text style={styles.message}>{copyMessage}</Text> : null}
-        </Card>
-      ) : null}
-
-      {destination ? (
-        <Card>
-        <Text style={styles.cardTitle}>안내</Text>
-        <Text style={styles.copy}>
-          지금은 QR 이미지 대신 코드를 복사해서 써요.
-        </Text>
         </Card>
       ) : null}
 
@@ -172,6 +176,17 @@ export default function PlaceQrCodeScreen() {
 const styles = StyleSheet.create({
   qrCard: {
     alignItems: "center",
+  },
+  qrImageCard: {
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  qrImageWrap: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
   },
   cardTitle: {
     ...typography.subheading,

@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { getTripHistory, type TripHistoryItem } from "@/src/features/history/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 
 type TripHistoryState = {
   errorMessage: string | null;
@@ -12,7 +13,7 @@ type TripHistoryState = {
   refreshing: boolean;
 };
 
-const LOAD_ERROR_MESSAGE = "귀가 기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.";
+const LOAD_ERROR_MESSAGE = "정보를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 
 export function useTripHistory(): TripHistoryState {
   const { user } = useAuthSession();
@@ -47,7 +48,7 @@ export function useTripHistory(): TripHistoryState {
           setErrorMessage(null);
         }
       } catch (error) {
-        console.error("fetch trip history failed", error);
+        logFriendlyError("귀가 기록 확인", error);
         setErrorMessage(LOAD_ERROR_MESSAGE);
         setHistory([]);
       }

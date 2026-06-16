@@ -25,6 +25,7 @@ import {
   type Trip,
 } from "@/src/features/trips/api";
 import { useReturnSetupData } from "@/src/features/trips/useReturnSetupData";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 const ETA_OPTIONS = [20, 30, 45, 60];
@@ -97,7 +98,7 @@ export default function ReturnSetupScreen() {
       if (!mounted) return;
 
       if (error) {
-        console.error("check active trip before return setup failed", error);
+        logFriendlyError("진행 중인 귀가 확인", error);
         return;
       }
 
@@ -143,22 +144,22 @@ export default function ReturnSetupScreen() {
 
   const handleStartTrip = async () => {
     if (!userId || !selectedDestination) {
-      setFormMessage("어디로 가는지 골라주세요");
+      setFormMessage("어디로 가는지 선택해 주세요.");
       return;
     }
 
     if (resolvedMinutes <= 0) {
-      setFormMessage("도착 시간을 확인해 주세요");
+      setFormMessage("도착 예정 시간을 선택해 주세요.");
       return;
     }
 
     if (selectedConnectionIds.length === 0) {
-      setFormMessage("누구에게 알려줄지 골라주세요");
+      setFormMessage("누구에게 알려줄지 골라주세요.");
       return;
     }
 
     if (existingActiveTrip) {
-      setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
+      setFormMessage("이미 진행 중인 귀가가 있어요.");
       router.replace({
         pathname: "/home/active",
         params: { tripId: existingActiveTrip.id },
@@ -184,14 +185,14 @@ export default function ReturnSetupScreen() {
       const activeTripResult = await fetchLatestActiveTrip(userId);
 
       if (activeTripResult.error) {
-        console.error("check active trip before create failed", activeTripResult.error);
-        setFormMessage("확인이 안 됐어요. 잠시 뒤 다시 해주세요");
+        logFriendlyError("귀가 시작 전 확인", activeTripResult.error);
+        setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
         return;
       }
 
       if (activeTripResult.data) {
         setExistingActiveTrip(activeTripResult.data);
-        setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
+        setFormMessage("이미 진행 중인 귀가가 있어요.");
         router.replace({
           pathname: "/home/active",
           params: { tripId: activeTripResult.data.id },
@@ -209,17 +210,17 @@ export default function ReturnSetupScreen() {
       });
 
       if (error || !data) {
-        console.error("create trip failed", error, {
+        logFriendlyError("귀가 시작 확인", error, {
           destinationId: selectedDestination.id,
-          recipientCount: selectedRecipients.length,
+          selectedCount: selectedRecipients.length,
         });
-        setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 해주세요");
+        setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
         return;
       }
 
       if (blockedTrip) {
         setExistingActiveTrip(blockedTrip);
-        setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
+        setFormMessage("이미 진행 중인 귀가가 있어요.");
         router.replace({
           pathname: "/home/active",
           params: { tripId: blockedTrip.id },
@@ -235,11 +236,11 @@ export default function ReturnSetupScreen() {
         },
       });
     } catch (error) {
-      console.error("create trip failed", error, {
+      logFriendlyError("귀가 시작 확인", error, {
         destinationId: selectedDestination.id,
-        recipientCount: selectedRecipients.length,
+        selectedCount: selectedRecipients.length,
       });
-      setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 해주세요");
+      setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     } finally {
       setStarting(false);
     }

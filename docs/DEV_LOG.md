@@ -216,6 +216,19 @@
     - 마이 탭 버전 표기에서 `개발 중` 문구 제거
     - 회원가입 코드의 오래된 DB 설명 주석 제거
     - 큰 리팩토링 없이 mock data 잔존 여부를 확인했으며, 현재 실제 화면에서 쓰지 않는 mock address 데이터는 다음 정리 후보로 남김
+48. 앱 전체 에러/실패 안내 UX를 정리했다.
+    - `src/lib/friendlyAlert.ts`를 추가해 간단한 확인/실패 안내를 `Alert.alert` 기반으로 통일
+    - `/home/qr-arrival`은 빈 코드, 잘못된 코드 형식, 다른 장소 QR, 이미 확인된 귀가, 종료된 귀가, 네트워크/Supabase 실패를 사용자 친화 문구로 분기
+    - QR 코드 원문은 로그에 남기지 않고, 개발 확인용 오류는 `console.error`에만 남김
+    - `/home/qr-arrival`에 `expo-camera` 기반 QR 스캔 영역을 추가하고, 수동 입력 fallback은 유지
+    - `/home/active` 귀가 취소는 확인 팝업 후 `cancelTrip`을 실행하도록 변경
+    - 로그인/회원가입, 장소 저장, 초대 생성/수락, 귀가 시작, 시간 연장, 도움 요청, 목록 불러오기 실패 문구를 raw error 대신 쉬운 문장으로 정리
+49. raw error 토스트와 QR 실패 팝업 반복 문제를 수정했다.
+    - 초대 수락 실패에서 `console.error("accept invite failed", error)`를 제거하고 사용자용 실패 문구 매핑만 표시
+    - 공통 `logFriendlyError`가 raw error 객체를 그대로 출력하지 않고 기능명과 최소 context만 남기도록 변경
+    - QR 스캔 실패 시 `scanPaused`, `processingRef`, `alertVisibleRef`, `scanPausedRef`로 중복 스캔과 중복 Alert 호출을 차단
+    - QR 실패 Alert의 버튼은 스캔을 바로 재개하지 않고, 화면의 `다시 스캔하기` 버튼을 눌러야 카메라 스캔을 재개
+    - 주요 화면과 helper의 expected failure 로그를 `console.error`에서 공통 warning 로그로 변경
 
 ## Current Issue
 

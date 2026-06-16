@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { supabase } from "@/src/lib/supabase";
 import { createTripNotificationEvents } from "@/src/features/notifications/api";
+import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import type { Database } from "@/src/types/supabase";
 
 export type Trip = Database["public"]["Tables"]["trips"]["Row"];
@@ -60,10 +61,6 @@ function getSupabaseClient(): WatseoSupabaseClient {
 export async function createTripSession(input: CreateTripSessionInput) {
   const client = getSupabaseClient();
   if (input.recipients.length === 0) {
-    console.error("create trip recipients failed", {
-      reason: "no recipients selected",
-    });
-
     return {
       data: null,
       error: new Error("at least one trip recipient is required"),
@@ -75,7 +72,7 @@ export async function createTripSession(input: CreateTripSessionInput) {
   const activeTripResult = await fetchLatestActiveTrip(input.ownerId);
 
   if (activeTripResult.error) {
-    console.error("check active trip before create failed", activeTripResult.error);
+    logFriendlyError("귀가 시작 전 확인", activeTripResult.error);
 
     return {
       data: null,
@@ -112,7 +109,9 @@ export async function createTripSession(input: CreateTripSessionInput) {
     .single();
 
   if (tripResult.error || !tripResult.data) {
-    console.error("create trip failed", tripResult.error ?? "trip insert returned no data");
+    logFriendlyError("귀가 시작 확인", tripResult.error, {
+      reason: tripResult.data ? "saved" : "empty_result",
+    });
 
     return {
       data: null,
@@ -136,9 +135,9 @@ export async function createTripSession(input: CreateTripSessionInput) {
     .select("id, trip_id, recipient_id, relationship_id, added_by, notification_enabled, created_at");
 
   if (recipientsResult.error) {
-    console.error("create trip recipients failed", recipientsResult.error, {
+    logFriendlyError("귀가 알림 대상 저장 확인", recipientsResult.error, {
       tripId: tripResult.data.id,
-      recipientCount: recipientInserts.length,
+      selectedCount: recipientInserts.length,
     });
 
     // TODO: DB transaction/RPC가 생기면 trip 생성과 recipients 생성을 원자적으로 묶는다.
@@ -210,7 +209,7 @@ export async function cancelTrip(tripId: string, ownerId: string) {
     .single();
 
   if (result.error) {
-    console.error("cancel trip failed", result.error, {
+    logFriendlyError("귀가 취소 확인", result.error, {
       tripId,
     });
   }
@@ -243,7 +242,7 @@ export async function requestHelp(input: RequestHelpInput) {
     .single();
 
   if (helpRequestResult.error || !helpRequestResult.data) {
-    console.error("create help request failed", helpRequestResult.error);
+    logFriendlyError("도움 요청 저장 확인", helpRequestResult.error);
 
     return {
       data: null,
@@ -264,7 +263,7 @@ export async function requestHelp(input: RequestHelpInput) {
     .single();
 
   if (tripResult.error || !tripResult.data) {
-    console.error("update trip for help request failed", tripResult.error, {
+    logFriendlyError("도움 요청 상태 확인", tripResult.error, {
       tripId: input.trip.id,
     });
 
@@ -278,9 +277,8 @@ export async function requestHelp(input: RequestHelpInput) {
   const recipientsResult = await fetchTripRecipients(input.trip.id);
 
   if (recipientsResult.error) {
-    console.error("load trip recipients for help request notification failed", {
+    logFriendlyError("도움 요청 알림 대상 확인", recipientsResult.error, {
       tripId: input.trip.id,
-      error: recipientsResult.error,
     });
 
     return {
@@ -331,7 +329,7 @@ export async function requestTimeExtension(input: RequestTimeExtensionInput) {
     .single();
 
   if (requestResult.error || !requestResult.data) {
-    console.error("create time extension request failed", requestResult.error);
+    logFriendlyError("시간 연장 요청 저장 확인", requestResult.error);
 
     return {
       data: null,
@@ -352,7 +350,7 @@ export async function requestTimeExtension(input: RequestTimeExtensionInput) {
     .single();
 
   if (tripResult.error || !tripResult.data) {
-    console.error("update trip for time extension request failed", tripResult.error, {
+    logFriendlyError("시간 연장 상태 확인", tripResult.error, {
       tripId: input.trip.id,
     });
 
@@ -366,9 +364,8 @@ export async function requestTimeExtension(input: RequestTimeExtensionInput) {
   const recipientsResult = await fetchTripRecipients(input.trip.id);
 
   if (recipientsResult.error) {
-    console.error("load trip recipients for time extension notification failed", {
+    logFriendlyError("시간 연장 알림 대상 확인", recipientsResult.error, {
       tripId: input.trip.id,
-      error: recipientsResult.error,
     });
 
     return {
@@ -386,9 +383,14 @@ export async function requestTimeExtension(input: RequestTimeExtensionInput) {
   );
 
   if (recipientIds.length === 0) {
-    console.warn("no trip recipients found for time extension notification", {
-      tripId: input.trip.id,
-    });
+    return {
+      data: {
+        request: requestResult.data,
+        trip: tripResult.data,
+      },
+      error: null,
+      notificationError: null,
+    };
   }
 
   const notificationResult = await createTripNotificationEvents({
