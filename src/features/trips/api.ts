@@ -117,3 +117,16 @@ export async function fetchTripById(tripId: string) {
     .eq("id", tripId)
     .maybeSingle();
 }
+
+export async function fetchLatestActiveTrip(userId: string) {
+  const client = getSupabaseClient();
+
+  return client
+    .from("trips")
+    .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
+    .eq("owner_id", userId)
+    .eq("state", "on_the_way")
+    .order("started_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+}

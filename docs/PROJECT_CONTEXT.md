@@ -20,6 +20,8 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 
 `/home/return-setup` 귀가 세션 생성은 실제 Supabase `trips`, `trip_recipients` 테이블에 연결되었다.
 
+QR 도착 인증은 실제 Supabase `arrival_verifications` insert와 `trips` 상태 update에 연결되었다.
+
 현재는 실제 QR 스캔, 위치 권한, 푸시 알림을 붙이기 전 단계이며, 화면 구조와 타입 모델을 안정화하면서 Auth 이후 흐름을 준비하는 상태다.
 
 ## Implemented
@@ -49,6 +51,9 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 - `/home/return-setup` trips 생성
 - `/home/return-setup` trip_recipients 생성
 - `/home/active` created trip id 표시 준비
+- `/places/qr-code` destination qr_token 표시 및 복사
+- `/home/qr-arrival` QR token 입력 검증
+- `/home/partial-verification` arrived_partial trip 표시
 
 ## Not Implemented Yet
 
@@ -56,6 +61,7 @@ Supabase v1 schema migration과 기본 Auth 연결이 완료되었다.
 - notification_events 생성
 - 실제 QR 이미지 생성
 - 실제 QR 스캔
+- location verification
 - 실제 위치 권한
 - 실제 푸시 알림
 

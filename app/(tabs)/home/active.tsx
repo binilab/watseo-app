@@ -160,7 +160,12 @@ export default function ActiveReturnScreen() {
           <View style={styles.actions}>
             <AppButton
               icon={QrCode}
-              onPress={() => router.push("/home/qr-arrival")}
+              onPress={() =>
+                router.push({
+                  pathname: "/home/qr-arrival",
+                  params: { tripId: trip.id },
+                })
+              }
               title="QR로 도착 인증"
             />
             <AppButton

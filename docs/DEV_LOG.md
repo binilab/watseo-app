@@ -129,6 +129,16 @@
     - trip_recipients insert 실패 로그를 `console.error("create trip recipients failed", error)`로 정리
     - `/home/active`는 `tripId`가 없으면 “진행 중인 귀가 정보를 찾을 수 없어요” 안내를 표시
     - `/home/active`는 trip 조회 성공 시에만 mock timeline/actions를 표시
+37. QR 도착 인증을 Supabase `destinations`, `trips`, `arrival_verifications`에 연결했다.
+    - 실제 카메라 스캔은 아직 구현하지 않고 QR token 입력 방식으로 구현
+    - `/places/qr-code`는 destination `qr_token` 텍스트와 복사 버튼 제공
+    - `/home/active`에서 `/home/qr-arrival?tripId=...`로 이동
+    - `/home/qr-arrival`은 trip destination의 `qr_token`과 입력값을 비교
+    - QR 성공 시 `arrival_verifications`에 `method = qr_code`, `status = succeeded`, `verified_at` insert
+    - QR 성공 후 `trips.state = arrived_partial`, `trips.arrived_at = now` update
+    - 성공 후 `/home/partial-verification?tripId=...`로 이동
+    - v1에서는 QR 실패 기록을 남기지 않고 사용자용 오류만 표시
+    - `notification_events`는 아직 생성하지 않음
 
 ## Current Issue
 

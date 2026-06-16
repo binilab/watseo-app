@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Copy, QrCode, RotateCw } from "lucide-react-native";
 
 import { AppButton, Card, Screen, SectionHeader, StatusChip } from "@/src/components";
@@ -17,6 +18,7 @@ export default function PlaceQrCodeScreen() {
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(Boolean(destinationId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -56,6 +58,17 @@ export default function PlaceQrCodeScreen() {
       mounted = false;
     };
   }, [destinationId, user?.id]);
+
+  const handleCopyQrToken = async () => {
+    if (!destination) return;
+
+    try {
+      await Clipboard.setStringAsync(destination.qr_token);
+      setCopyMessage("QR 코드 값을 복사했어요.");
+    } catch {
+      setCopyMessage("복사하지 못했어요. QR 코드 값을 직접 전달해주세요.");
+    }
+  };
 
   return (
     <Screen>
@@ -104,8 +117,21 @@ export default function PlaceQrCodeScreen() {
       {destination ? (
         <Card>
           <Text style={styles.cardTitle}>연결된 QR 토큰</Text>
-          <Text style={styles.token}>{destination.qr_token}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tokenScroller}
+          >
+            <Text selectable style={styles.token}>{destination.qr_token}</Text>
+          </ScrollView>
           <Text style={styles.copy}>앱에서 토큰을 직접 만들지 않고 DB 기본값을 사용합니다.</Text>
+          <AppButton
+            icon={Copy}
+            onPress={handleCopyQrToken}
+            title="QR 코드 값 복사"
+            variant="secondary"
+          />
+          {copyMessage ? <Text style={styles.message}>{copyMessage}</Text> : null}
         </Card>
       ) : null}
 
@@ -162,6 +188,21 @@ const styles = StyleSheet.create({
   token: {
     ...typography.caption,
     color: colors.primaryDark,
+    fontFamily: "monospace",
+    paddingVertical: spacing.sm,
+  },
+  tokenScroller: {
+    maxWidth: "100%",
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+  },
+  message: {
+    ...typography.caption,
+    color: colors.primaryDark,
+    textAlign: "center",
   },
   backButton: {
     marginTop: spacing.sm,
