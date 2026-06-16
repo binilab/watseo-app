@@ -1,7 +1,9 @@
 import { Redirect, Tabs } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
 import { Screen } from "@/src/components";
+import { getOnboardingRoute, type OnboardingRoute } from "@/src/features/auth/onboarding";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
   colors,
@@ -14,8 +16,36 @@ import {
 
 export default function TabLayout() {
   const { loading, session } = useAuthSession();
+  const [onboardingRoute, setOnboardingRoute] = useState<OnboardingRoute | null>(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkOnboarding() {
+      if (!session) {
+        setOnboardingRoute(null);
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      setCheckingOnboarding(true);
+      const { route } = await getOnboardingRoute(session.user.id);
+
+      if (!mounted) return;
+
+      setOnboardingRoute(route);
+      setCheckingOnboarding(false);
+    }
+
+    void checkOnboarding();
+
+    return () => {
+      mounted = false;
+    };
+  }, [session]);
+
+  if (loading || checkingOnboarding) {
     return (
       <Screen hasBottomTabs={false} scroll={false}>
         <View style={styles.loading}>
@@ -28,6 +58,10 @@ export default function TabLayout() {
 
   if (!session) {
     return <Redirect href="/login" />;
+  }
+
+  if (onboardingRoute === "/role") {
+    return <Redirect href="/role" />;
   }
 
   return (

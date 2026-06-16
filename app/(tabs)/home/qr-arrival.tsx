@@ -143,7 +143,7 @@ export default function QrArrivalScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>QR 도착 인증</Text>
         <Text style={styles.description}>
-          카메라 스캔 전 단계로, 도착 장소의 QR 코드 값을 입력해 인증합니다.
+          도착 장소에 붙여둔 QR 코드 값을 입력해 도착 인증을 완료합니다.
         </Text>
       </View>
 
@@ -156,7 +156,9 @@ export default function QrArrivalScreen() {
           )}
         </View>
         <Text style={styles.scanText}>
-          {trip ? "도착 장소에 표시된 QR 코드 값을 입력해주세요." : "진행 중인 귀가 정보를 확인하고 있어요."}
+          {trip
+            ? "테스트 중에는 장소 탭 → QR 보기에서 코드를 복사할 수 있어요."
+            : "진행 중인 귀가 정보를 확인하고 있어요."}
         </Text>
       </Card>
 
@@ -170,7 +172,7 @@ export default function QrArrivalScreen() {
             setQrToken(value.trim());
             setMessage(null);
           }}
-          placeholder="도착 장소 QR token 입력"
+          placeholder="장소 QR token 붙여넣기"
           placeholderTextColor={colors.textSubtle}
           style={styles.input}
           value={qrToken}

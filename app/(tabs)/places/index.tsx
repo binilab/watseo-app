@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
 import { Check, MapPin, Plus, QrCode, RotateCw } from "lucide-react-native";
 
-import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
+import { AppButton, Card, Screen, SectionHeader } from "@/src/components";
 import { type Destination } from "@/src/features/destinations/api";
 import { useDestinations } from "@/src/features/destinations/useDestinations";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
@@ -167,16 +167,42 @@ export default function PlacesScreen() {
         ) : null}
 
         {!loading
-          ? destinations.map((destination) => (
-              <ListItem
-                detail="QR 도착 인증에 사용할 장소"
-                icon={MapPin}
-                key={destination.id}
-                meta={selectedDestination?.id === destination.id ? "선택됨" : "QR 준비"}
-                onPress={() => handleSelectDestination(destination)}
-                title={destination.name}
-              />
-            ))
+          ? destinations.map((destination) => {
+              const selected = selectedDestination?.id === destination.id;
+
+              return (
+                <View key={destination.id} style={styles.destinationCard}>
+                  <View style={styles.destinationHeader}>
+                    <View style={styles.destinationIcon}>
+                      <MapPin color={colors.primaryDark} size={22} strokeWidth={2.5} />
+                    </View>
+                    <View style={styles.destinationCopy}>
+                      <Text style={styles.destinationName}>{destination.name}</Text>
+                      <Text style={styles.destinationDetail}>
+                        QR 도착 인증에 사용할 장소
+                      </Text>
+                    </View>
+                    <Text style={styles.meta}>{selected ? "선택됨" : "등록됨"}</Text>
+                  </View>
+                  <View style={styles.destinationActions}>
+                    <AppButton
+                      icon={QrCode}
+                      onPress={() => openQrCode(destination)}
+                      style={styles.destinationAction}
+                      title="QR 보기"
+                      variant="secondary"
+                    />
+                    <AppButton
+                      icon={Check}
+                      onPress={() => handleSelectDestination(destination)}
+                      style={styles.destinationAction}
+                      title="이름 수정"
+                      variant="ghost"
+                    />
+                  </View>
+                </View>
+              );
+            })
           : null}
       </Card>
 
@@ -253,5 +279,47 @@ const styles = StyleSheet.create({
   emptyTitle: {
     ...typography.label,
     color: colors.text,
+  },
+  destinationCard: {
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  destinationHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  destinationIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceMint,
+  },
+  destinationCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  destinationName: {
+    ...typography.label,
+    color: colors.text,
+  },
+  destinationDetail: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  meta: {
+    ...typography.caption,
+    color: colors.primary,
+  },
+  destinationActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  destinationAction: {
+    flex: 1,
   },
 });

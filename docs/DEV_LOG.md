@@ -186,6 +186,27 @@
     - `cancelled` 또는 `cancelled_at`이 있으면 제목과 오른쪽 뱃지를 모두 `취소됨`으로 통일
     - active 판정은 `on_the_way`, `late`, `extension_requested`, `emergency_requested`만 사용
     - 개발 확인용으로 trip id prefix, state, cancelled_at만 `console.log("history trips", ...)`에 기록
+45. MVP 전체 QA 단계를 시작하고 핵심 흐름 결함을 수정했다.
+    - `(tabs)` route guard가 session뿐 아니라 `profiles.onboarding_completed`도 확인하도록 보강
+    - `/home/return-setup`은 도착 장소, 예상 도착 시간, 알림 받을 사람 1명 이상이 있어야 귀가 시작 가능
+    - `createTripSession` helper도 recipient가 없으면 `trips` insert 전에 실패하도록 방어
+    - `arrived_partial` 상태 문구를 `QR 인증 완료`로 통일
+    - `/home/time-extension` mock 화면을 실제 `time_extension_requests` insert, `trips.state = extension_requested` update 흐름으로 복구
+    - 시간 연장 요청 생성 시 수락 전까지 `trips.expected_arrival_at`은 기존 값 유지
+    - `/connections`는 pending `time_extension_requests`를 함께 조회하고 `연장 수락`/`거절` 버튼으로 `respond_time_extension_request` RPC 호출
+    - `/home/active`는 focus 시 trip을 다시 조회해 수락/거절 후 A 화면 상태가 갱신되도록 정리
+    - `/home`에 현재 이메일, `profiles.display_name` 표시와 닉네임 수정 UI 추가
+    - `/connections`에 현재 테스트 계정 이메일 표시
+    - `docs/QA_CHECKLIST.md`에 수동 QA 체크리스트를 추가
+46. QR 확인/도착 인증 UX와 라우팅을 정리했다.
+    - `/places` 등록된 장소마다 `QR 보기`, `이름 수정` 버튼을 명확히 표시
+    - `QR 보기`는 항상 `/places/qr-code?destinationId=...`로 이동
+    - destinationId 없이 `/places/qr-code`에 들어오면 QR 화면 대신 장소 목록 선택 안내와 이동 버튼 표시
+    - `/places/qr-code`는 선택된 `destination.name`, `destination.qr_token`, `QR 코드 값 복사` 버튼만 표시
+    - 실제 token 기반 QR 이미지가 아직 없으므로 정적인 QR 아이콘은 제거
+    - `/home/qr-arrival` 안내 문구를 QR token 입력/붙여넣기 테스트 흐름에 맞게 수정
+    - 홈의 `장소 QR 보기` 버튼은 destinationId 없는 QR 화면이 아니라 `/places`로 이동
+    - 수동 테스트 흐름: 장소 탭에서 QR 보기 → QR token 복사 → 내 귀가 상황에서 QR 도착 인증 → 복사한 token 입력 → `trips.state = arrived_partial` 확인
 
 ## Current Issue
 

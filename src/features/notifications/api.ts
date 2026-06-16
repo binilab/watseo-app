@@ -14,11 +14,18 @@ type CreateTripNotificationEventsInput = {
   message?: string;
   notificationType: Extract<
     NotificationType,
-    "trip_started" | "arrived_partial" | "help_requested"
+    | "trip_started"
+    | "arrived_partial"
+    | "time_extension_requested"
+    | "help_requested"
   >;
   previousState?: string;
   recipientIds: string[];
-  state: "on_the_way" | "arrived_partial" | "emergency_requested";
+  state:
+    | "on_the_way"
+    | "arrived_partial"
+    | "extension_requested"
+    | "emergency_requested";
   tripId: string;
 };
 

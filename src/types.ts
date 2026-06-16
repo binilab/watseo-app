@@ -83,10 +83,10 @@ export const STATUS_DISPLAY_BY_STATE: Record<AppState, StatusDisplay> = {
   not_started: { label: "귀가 전", tone: "neutral" },
   on_the_way: { label: "귀가 중", tone: "active" },
   arrived_verified: { label: "도착 인증 완료", tone: "active" },
-  arrived_partial: { label: "부분 인증", tone: "pending" },
+  arrived_partial: { label: "QR 인증 완료", tone: "pending" },
   late: { label: "확인 필요", tone: "pending" },
   extension_requested: { label: "시간 연장 요청", tone: "pending" },
-  emergency_requested: { label: "도움 요청 확인", tone: "danger" },
+  emergency_requested: { label: "도움 요청", tone: "danger" },
   cancelled: { label: "취소됨", tone: "neutral" },
 };
 

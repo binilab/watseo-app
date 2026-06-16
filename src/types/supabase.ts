@@ -529,6 +529,13 @@ export type Database = {
           relationship_id: string;
         }[];
       };
+      respond_time_extension_request: {
+        Args: {
+          request_id: string;
+          response_status: Database["public"]["Enums"]["request_status"];
+        };
+        Returns: undefined;
+      };
       is_accepted_relationship_between: {
         Args: {
           input_relationship_id: string;

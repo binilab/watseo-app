@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { CalendarClock, HeartHandshake, Link2, RotateCw, UserPlus } from "lucide-react-native";
 
@@ -7,8 +8,10 @@ import {
   type ConnectedPerson,
   type RecipientActiveTrip,
   type RelationshipType,
+  respondTimeExtensionRequest,
 } from "@/src/features/connections/api";
 import { useConnections } from "@/src/features/connections/useConnections";
+import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 const RELATIONSHIP_TYPE_LABELS: Record<RelationshipType, string> = {
@@ -79,6 +82,9 @@ function ConnectionRow({
 }
 
 export default function ConnectionsDashboardScreen() {
+  const { user } = useAuthSession();
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
   const {
     activeTrips,
     connections,
@@ -91,12 +97,37 @@ export default function ConnectionsDashboardScreen() {
     activeTrips.map((activeTrip) => [activeTrip.ownerId, activeTrip]),
   );
 
+  async function handleTimeExtensionResponse(
+    requestId: string,
+    responseStatus: "accepted" | "declined",
+  ) {
+    setRespondingRequestId(requestId);
+    setActionMessage(null);
+
+    const { error } = await respondTimeExtensionRequest(requestId, responseStatus);
+
+    setRespondingRequestId(null);
+
+    if (error) {
+      console.error("respond time extension request failed", {
+        code: "code" in error ? error.code : null,
+        message: error.message,
+      });
+      setActionMessage("시간 연장 요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    await refreshConnections();
+  }
+
   return (
     <Screen>
       <SectionHeader
         title="연결 대시보드"
         description="도착 알림을 함께 확인할 사람과 초대 상태를 관리합니다."
       />
+
+      {user?.email ? <Text style={styles.accountText}>현재 계정 {user.email}</Text> : null}
 
       <Card tone="mint">
         <Text style={styles.big}>{loading ? "연결 확인 중" : `${connections.length}명 연결됨`}</Text>
@@ -178,21 +209,53 @@ export default function ConnectionsDashboardScreen() {
       {!loading && activeTrips.length > 0 ? (
         <Card tone="warm">
           <Text style={styles.cardTitle}>확인 중인 귀가</Text>
-          {activeTrips.map((activeTrip) => (
-            <ListItem
-              detail={
-                activeTrip.state === "emergency_requested"
-                  ? `확인이 필요해요 · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
-                  : `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
-              }
-              key={activeTrip.tripId}
-              title={
-                activeTrip.state === "emergency_requested"
-                  ? `${activeTrip.ownerProfile?.display_name ?? "연결된 사람"} · 도움 요청`
-                  : activeTrip.ownerProfile?.display_name ?? "연결된 사람"
-              }
-            />
-          ))}
+          {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
+          {activeTrips.map((activeTrip) => {
+            const pendingRequest =
+              activeTrip.state === "extension_requested"
+                ? activeTrip.pendingTimeExtensionRequest
+                : null;
+
+            return (
+              <View key={activeTrip.tripId} style={styles.activeTripBlock}>
+                <ListItem
+                  detail={
+                    activeTrip.state === "emergency_requested"
+                      ? `확인이 필요해요 · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+                      : `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+                  }
+                  title={
+                    activeTrip.state === "emergency_requested"
+                      ? `${activeTrip.ownerProfile?.display_name ?? "연결된 사람"} · 도움 요청`
+                      : activeTrip.ownerProfile?.display_name ?? "연결된 사람"
+                  }
+                />
+                {pendingRequest ? (
+                  <View style={styles.responseActions}>
+                    <AppButton
+                      disabled={respondingRequestId === pendingRequest.id}
+                      loading={respondingRequestId === pendingRequest.id}
+                      onPress={() =>
+                        void handleTimeExtensionResponse(pendingRequest.id, "accepted")
+                      }
+                      style={styles.responseButton}
+                      title="연장 수락"
+                      variant="secondary"
+                    />
+                    <AppButton
+                      disabled={respondingRequestId === pendingRequest.id}
+                      onPress={() =>
+                        void handleTimeExtensionResponse(pendingRequest.id, "declined")
+                      }
+                      style={styles.responseButton}
+                      title="거절"
+                      variant="ghost"
+                    />
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
         </Card>
       ) : null}
 
@@ -223,6 +286,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
     marginBottom: spacing.sm,
+  },
+  accountText: {
+    ...typography.caption,
+    color: colors.textSubtle,
   },
   cardTitle: {
     ...typography.subheading,
@@ -293,5 +360,20 @@ const styles = StyleSheet.create({
   meta: {
     ...typography.caption,
     color: colors.primary,
+  },
+  activeTripBlock: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  responseActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  responseButton: {
+    flex: 1,
+  },
+  actionMessage: {
+    ...typography.caption,
+    color: colors.danger,
   },
 });

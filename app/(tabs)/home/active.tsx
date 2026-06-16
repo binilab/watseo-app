@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Clock3, MessageCircleWarning, QrCode } from "lucide-react-native";
 
@@ -53,57 +53,60 @@ export default function ActiveReturnScreen() {
     ? { label: "정보 없음", tone: "neutral" as const }
     : getStatusDisplay("on_the_way");
   const helpRequested = trip?.state === "emergency_requested";
+  const extensionRequested = trip?.state === "extension_requested";
 
-  useEffect(() => {
-    let mounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    async function loadTrip() {
-      if (authLoading) {
-        return;
-      }
+      async function loadTrip() {
+        if (authLoading) {
+          return;
+        }
 
-      if (!user) {
-        setTrip(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const { data, error } = tripId
-          ? await fetchTripById(tripId)
-          : await fetchLatestActiveTrip(user.id);
-
-        if (!mounted) return;
-
-        if (error || !data) {
+        if (!user) {
           setTrip(null);
-          setErrorMessage(
-            tripId
-              ? "귀가 세션 정보를 불러오지 못했어요."
-              : "진행 중인 귀가 정보를 찾을 수 없어요.",
-          );
-        } else {
-          setTrip(data);
-          setErrorMessage(null);
-        }
-      } catch {
-        if (!mounted) return;
-        setTrip(null);
-        setErrorMessage("귀가 세션 정보를 불러오지 못했어요.");
-      } finally {
-        if (mounted) {
           setLoading(false);
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const { data, error } = tripId
+            ? await fetchTripById(tripId)
+            : await fetchLatestActiveTrip(user.id);
+
+          if (!mounted) return;
+
+          if (error || !data) {
+            setTrip(null);
+            setErrorMessage(
+              tripId
+                ? "귀가 세션 정보를 불러오지 못했어요."
+                : "진행 중인 귀가 정보를 찾을 수 없어요.",
+            );
+          } else {
+            setTrip(data);
+            setErrorMessage(null);
+          }
+        } catch {
+          if (!mounted) return;
+          setTrip(null);
+          setErrorMessage("귀가 세션 정보를 불러오지 못했어요.");
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
         }
       }
-    }
 
-    void loadTrip();
+      void loadTrip();
 
-    return () => {
-      mounted = false;
-    };
-  }, [authLoading, tripId, user]);
+      return () => {
+        mounted = false;
+      };
+    }, [authLoading, tripId, user]),
+  );
 
   async function handleCancelTrip() {
     if (!user || !trip) {
@@ -200,6 +203,15 @@ export default function ActiveReturnScreen() {
           <Text style={styles.cardTitle}>도움 요청을 보냈어요</Text>
           <Text style={styles.description}>
             연결된 사람에게 확인이 필요한 상태로 표시돼요. 상세 위치는 계속 공유되지 않아요.
+          </Text>
+        </Card>
+      ) : null}
+
+      {extensionRequested ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>연장 요청을 보냈어요</Text>
+          <Text style={styles.description}>
+            연결된 사람이 수락하면 예상 도착 시간이 갱신돼요.
           </Text>
         </Card>
       ) : null}

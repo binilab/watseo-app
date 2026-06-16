@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { Copy, QrCode, RotateCw } from "lucide-react-native";
+import { Copy, MapPin, RotateCw } from "lucide-react-native";
 
 import { AppButton, Card, Screen, SectionHeader, StatusChip } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
@@ -73,33 +73,47 @@ export default function PlaceQrCodeScreen() {
   return (
     <Screen>
       <SectionHeader
-        title="QR 코드 생성 및 안내"
-        description="선택한 도착 장소의 QR 토큰을 참조할 준비를 했습니다."
+        title="장소 QR 코드 값"
+        description="선택한 도착 장소의 QR token을 확인하고 복사합니다."
       />
 
-      <Card tone="mint" style={styles.qrCard}>
-        {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={colors.primaryDark} />
-            <Text style={styles.copy}>도착 장소를 확인하고 있어요.</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.qrBox}>
-              <QrCode color={colors.primaryDark} size={118} strokeWidth={1.7} />
+      {!destinationId ? (
+        <Card tone="warm">
+          <Text style={styles.cardTitle}>먼저 장소를 선택해주세요</Text>
+          <Text style={styles.copy}>
+            먼저 장소 목록에서 QR을 볼 장소를 선택해주세요.
+          </Text>
+          <AppButton
+            icon={MapPin}
+            onPress={() => router.replace("/places")}
+            title="장소 목록으로 이동"
+            variant="secondary"
+          />
+        </Card>
+      ) : null}
+
+      {destinationId ? (
+        <Card tone="mint" style={styles.qrCard}>
+          {loading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator color={colors.primaryDark} />
+              <Text style={styles.copy}>도착 장소를 확인하고 있어요.</Text>
             </View>
-            <StatusChip
-              label={destination ? `${destination.name} · 도착 인증용` : "장소 선택 필요"}
-              tone={destination ? "active" : "neutral"}
-            />
-            <Text style={styles.copy}>
-              {destination
-                ? "실제 QR 이미지는 다음 단계에서 이 장소의 토큰을 사용해 생성합니다."
-                : "장소 목록에서 QR 코드를 볼 도착 장소를 선택해주세요."}
-            </Text>
-          </>
-        )}
-      </Card>
+          ) : (
+            <>
+              <StatusChip
+                label={destination ? `${destination.name} · 도착 인증용` : "장소 확인 필요"}
+                tone={destination ? "active" : "neutral"}
+              />
+              <Text style={styles.copy}>
+                {destination
+                  ? "아래 QR 코드 값을 복사해 도착 인증 테스트에 사용할 수 있어요."
+                  : "선택한 장소 정보를 확인하지 못했어요."}
+              </Text>
+            </>
+          )}
+        </Card>
+      ) : null}
 
       {errorMessage ? (
         <Card tone="warm">
@@ -107,8 +121,8 @@ export default function PlaceQrCodeScreen() {
           <Text style={styles.copy}>{errorMessage}</Text>
           <AppButton
             icon={RotateCw}
-            onPress={() => router.back()}
-            title="장소 목록에서 다시 선택"
+            onPress={() => router.replace("/places")}
+            title="장소 목록으로 이동"
             variant="secondary"
           />
         </Card>
@@ -116,7 +130,8 @@ export default function PlaceQrCodeScreen() {
 
       {destination ? (
         <Card>
-          <Text style={styles.cardTitle}>연결된 QR 토큰</Text>
+          <Text style={styles.cardTitle}>{destination.name}</Text>
+          <Text style={styles.copy}>이 장소의 QR 코드 값입니다.</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -124,7 +139,6 @@ export default function PlaceQrCodeScreen() {
           >
             <Text selectable style={styles.token}>{destination.qr_token}</Text>
           </ScrollView>
-          <Text style={styles.copy}>앱에서 토큰을 직접 만들지 않고 DB 기본값을 사용합니다.</Text>
           <AppButton
             icon={Copy}
             onPress={handleCopyQrToken}
@@ -135,22 +149,18 @@ export default function PlaceQrCodeScreen() {
         </Card>
       ) : null}
 
-      <Card>
+      {destination ? (
+        <Card>
         <Text style={styles.cardTitle}>설치 안내</Text>
         <Text style={styles.copy}>
-          현관 안쪽이나 자주 보는 위치에 붙여두면 도착 확인 흐름을 빠르게 마칠 수 있어요.
+          실제 QR 이미지는 아직 생성하지 않습니다. 테스트 중에는 이 값을 복사해 QR 도착 인증 화면에 붙여넣어주세요.
         </Text>
-        <AppButton
-          icon={Copy}
-          onPress={() => undefined}
-          title="안내 문구 복사"
-          variant="secondary"
-        />
-      </Card>
+        </Card>
+      ) : null}
 
       <AppButton
-        onPress={() => router.back()}
-        title="장소 목록으로 돌아가기"
+        onPress={() => router.replace("/places")}
+        title="장소 목록으로 이동"
         variant="secondary"
         style={styles.backButton}
       />
@@ -161,14 +171,6 @@ export default function PlaceQrCodeScreen() {
 const styles = StyleSheet.create({
   qrCard: {
     alignItems: "center",
-  },
-  qrBox: {
-    width: 210,
-    height: 210,
-    borderRadius: radius.xl,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
   },
   cardTitle: {
     ...typography.subheading,

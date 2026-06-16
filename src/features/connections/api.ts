@@ -20,6 +20,11 @@ export type RecipientActiveTrip = {
   expectedArrivalAt: string;
   ownerId: string;
   ownerProfile: Pick<Profile, "id" | "display_name" | "avatar_url"> | null;
+  pendingTimeExtensionRequest: {
+    id: string;
+    previousExpectedArrivalAt: string;
+    requestedExpectedArrivalAt: string;
+  } | null;
   state: Database["public"]["Enums"]["app_state"];
   tripId: string;
 };
@@ -201,12 +206,42 @@ export async function fetchRecipientActiveTrips(userId: string) {
   const profilesById = new Map(
     (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
   );
+  const pendingRequestsResult = await client
+    .from("time_extension_requests")
+    .select("id, trip_id, previous_expected_arrival_at, requested_expected_arrival_at, status, created_at")
+    .in("trip_id", visibleTrips.map((trip) => trip.id))
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (pendingRequestsResult.error) {
+    console.error("fetch pending time extension requests failed", pendingRequestsResult.error);
+  }
+
+  const pendingRequestByTripId = new Map<
+    string,
+    {
+      id: string;
+      previousExpectedArrivalAt: string;
+      requestedExpectedArrivalAt: string;
+    }
+  >();
+
+  for (const request of pendingRequestsResult.data ?? []) {
+    if (!pendingRequestByTripId.has(request.trip_id)) {
+      pendingRequestByTripId.set(request.trip_id, {
+        id: request.id,
+        previousExpectedArrivalAt: request.previous_expected_arrival_at,
+        requestedExpectedArrivalAt: request.requested_expected_arrival_at,
+      });
+    }
+  }
 
   return {
     data: visibleTrips.map((trip) => ({
       expectedArrivalAt: trip.expected_arrival_at,
       ownerId: trip.owner_id,
       ownerProfile: profilesById.get(trip.owner_id) ?? null,
+      pendingTimeExtensionRequest: pendingRequestByTripId.get(trip.id) ?? null,
       state: trip.state,
       tripId: trip.id,
     })),
@@ -252,5 +287,17 @@ export async function acceptConnectionInvite(rawToken: string) {
 
   return client.rpc("accept_connection_invite", {
     invite_token: inviteToken,
+  });
+}
+
+export async function respondTimeExtensionRequest(
+  requestId: string,
+  responseStatus: Extract<Database["public"]["Enums"]["request_status"], "accepted" | "declined">,
+) {
+  const client = getSupabaseClient();
+
+  return client.rpc("respond_time_extension_request", {
+    request_id: requestId,
+    response_status: responseStatus,
   });
 }

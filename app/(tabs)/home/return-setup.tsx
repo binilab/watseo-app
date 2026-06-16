@@ -111,6 +111,7 @@ export default function ReturnSetupScreen() {
     userId
       && selectedDestination
       && resolvedMinutes > 0
+      && selectedConnectionIds.length > 0
       && !starting
       && !existingActiveTrip,
   );
@@ -132,6 +133,11 @@ export default function ReturnSetupScreen() {
 
     if (resolvedMinutes <= 0) {
       setFormMessage("예상 도착 시간을 확인해주세요.");
+      return;
+    }
+
+    if (selectedConnectionIds.length === 0) {
+      setFormMessage("알림 받을 사람을 1명 이상 선택해주세요.");
       return;
     }
 
@@ -321,7 +327,7 @@ export default function ReturnSetupScreen() {
           <View style={styles.emptyBlock}>
             <Text style={styles.emptyTitle}>알림 받을 사람을 연결해주세요</Text>
             <Text style={styles.copy}>
-              v1에서는 1명 이상 선택을 권장하지만, 테스트 편의를 위해 선택 없이도 시작할 수 있어요.
+              v1에서는 알림 받을 사람 1명 이상이 필요해요.
             </Text>
             <AppButton
               icon={UserRound}
@@ -351,7 +357,7 @@ export default function ReturnSetupScreen() {
 
         {!loading && connections.length > 0 && selectedConnectionIds.length === 0 ? (
           <Text style={styles.notice}>
-            알림 받을 사람 선택을 권장하지만, 지금은 선택 없이 시작할 수 있어요.
+            알림 받을 사람을 1명 이상 선택해야 귀가를 시작할 수 있어요.
           </Text>
         ) : null}
       </Card>

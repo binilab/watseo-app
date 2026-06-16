@@ -41,7 +41,6 @@ function getHistoryStateLabel(item: TripHistoryItem) {
   const state = getResolvedState(item);
 
   if (state === "late") return "확인 필요";
-  if (state === "extension_requested") return "시간 연장";
 
   return HISTORY_STATE_LABELS[state];
 }

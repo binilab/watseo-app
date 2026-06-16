@@ -12,6 +12,8 @@ type TripRecipientInsert =
   Database["public"]["Tables"]["trip_recipients"]["Insert"];
 type HelpRequestInsert =
   Database["public"]["Tables"]["help_requests"]["Insert"];
+type TimeExtensionRequestInsert =
+  Database["public"]["Tables"]["time_extension_requests"]["Insert"];
 type TripUpdate = Database["public"]["Tables"]["trips"]["Update"];
 type WatseoSupabaseClient = SupabaseClient<Database>;
 
@@ -34,6 +36,12 @@ export type RequestHelpInput = {
   trip: Trip;
 };
 
+export type RequestTimeExtensionInput = {
+  requestedBy: string;
+  requestedExpectedArrivalAt: string;
+  trip: Trip;
+};
+
 const OWNER_ACTIVE_TRIP_STATES = [
   "on_the_way",
   "late",
@@ -51,6 +59,19 @@ function getSupabaseClient(): WatseoSupabaseClient {
 
 export async function createTripSession(input: CreateTripSessionInput) {
   const client = getSupabaseClient();
+  if (input.recipients.length === 0) {
+    console.error("create trip recipients failed", {
+      reason: "no recipients selected",
+    });
+
+    return {
+      data: null,
+      error: new Error("at least one trip recipient is required"),
+      recipientError: null,
+      existingActiveTrip: null,
+    };
+  }
+
   const activeTripResult = await fetchLatestActiveTrip(input.ownerId);
 
   if (activeTripResult.error) {
@@ -101,18 +122,6 @@ export async function createTripSession(input: CreateTripSessionInput) {
     };
   }
 
-  if (input.recipients.length === 0) {
-    return {
-      data: {
-        trip: tripResult.data,
-        recipients: [] as TripRecipient[],
-      },
-      error: null,
-      recipientError: null,
-      existingActiveTrip: null,
-    };
-  }
-
   const recipientInserts: TripRecipientInsert[] = input.recipients.map((recipient) => ({
     trip_id: tripResult.data.id,
     recipient_id: recipient.recipientId,
@@ -132,12 +141,10 @@ export async function createTripSession(input: CreateTripSessionInput) {
       recipientCount: recipientInserts.length,
     });
 
+    // TODO: DB transaction/RPC가 생기면 trip 생성과 recipients 생성을 원자적으로 묶는다.
     return {
-      data: {
-        trip: tripResult.data,
-        recipients: [] as TripRecipient[],
-      },
-      error: null,
+      data: null,
+      error: recipientsResult.error,
       recipientError: recipientsResult.error,
       existingActiveTrip: null,
     };
@@ -299,6 +306,103 @@ export async function requestHelp(input: RequestHelpInput) {
   return {
     data: {
       helpRequest: helpRequestResult.data,
+      trip: tripResult.data,
+    },
+    error: null,
+    notificationError: notificationResult.error,
+  };
+}
+
+export async function requestTimeExtension(input: RequestTimeExtensionInput) {
+  const client = getSupabaseClient();
+  const previousState = input.trip.state;
+  const requestInsert: TimeExtensionRequestInsert = {
+    trip_id: input.trip.id,
+    requested_by: input.requestedBy,
+    previous_expected_arrival_at: input.trip.expected_arrival_at,
+    requested_expected_arrival_at: input.requestedExpectedArrivalAt,
+    status: "pending",
+  };
+
+  const requestResult = await client
+    .from("time_extension_requests")
+    .insert(requestInsert)
+    .select("id, trip_id, requested_by, previous_expected_arrival_at, requested_expected_arrival_at, status, responded_at, created_at, updated_at")
+    .single();
+
+  if (requestResult.error || !requestResult.data) {
+    console.error("create time extension request failed", requestResult.error);
+
+    return {
+      data: null,
+      error: requestResult.error ?? new Error("time extension request insert failed"),
+      notificationError: null,
+    };
+  }
+
+  const tripUpdate: TripUpdate = {
+    state: "extension_requested",
+  };
+  const tripResult = await client
+    .from("trips")
+    .update(tripUpdate)
+    .eq("id", input.trip.id)
+    .eq("owner_id", input.requestedBy)
+    .select("id, owner_id, destination_id, state, expected_arrival_at, started_at, arrived_at, cancelled_at, created_at, updated_at")
+    .single();
+
+  if (tripResult.error || !tripResult.data) {
+    console.error("update trip for time extension request failed", tripResult.error, {
+      tripId: input.trip.id,
+    });
+
+    return {
+      data: null,
+      error: tripResult.error ?? new Error("trip update failed"),
+      notificationError: null,
+    };
+  }
+
+  const recipientsResult = await fetchTripRecipients(input.trip.id);
+
+  if (recipientsResult.error) {
+    console.error("load trip recipients for time extension notification failed", {
+      tripId: input.trip.id,
+      error: recipientsResult.error,
+    });
+
+    return {
+      data: {
+        request: requestResult.data,
+        trip: tripResult.data,
+      },
+      error: null,
+      notificationError: recipientsResult.error,
+    };
+  }
+
+  const recipientIds = (recipientsResult.data ?? []).map(
+    (recipient) => recipient.recipient_id,
+  );
+
+  if (recipientIds.length === 0) {
+    console.warn("no trip recipients found for time extension notification", {
+      tripId: input.trip.id,
+    });
+  }
+
+  const notificationResult = await createTripNotificationEvents({
+    actorId: input.requestedBy,
+    notificationType: "time_extension_requested",
+    previousState,
+    recipientIds,
+    state: "extension_requested",
+    tripId: input.trip.id,
+  });
+
+  return {
+    data: {
+      request: requestResult.data,
       trip: tripResult.data,
     },
     error: null,

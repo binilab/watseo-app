@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
@@ -66,9 +67,11 @@ export function useConnections(): ConnectionsState {
     [user],
   );
 
-  useEffect(() => {
-    void loadConnections("initial");
-  }, [loadConnections]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadConnections("initial");
+    }, [loadConnections]),
+  );
 
   return {
     activeTrips,
