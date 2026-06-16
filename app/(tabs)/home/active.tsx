@@ -3,8 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Clock3, MessageCircleWarning, QrCode } from "lucide-react-native";
 
-import { AppButton, Card, ListItem, Screen, StatusChip } from "@/src/components";
-import { activeTimeline } from "@/src/data/mock";
+import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
 import {
   cancelTrip,
@@ -82,8 +81,8 @@ export default function ActiveReturnScreen() {
             setTrip(null);
             setErrorMessage(
               tripId
-                ? "귀가 세션 정보를 불러오지 못했어요."
-                : "진행 중인 귀가 정보를 찾을 수 없어요.",
+                ? "귀가 정보를 불러오지 못했어요."
+                : "진행 중인 귀가가 없어요.",
             );
           } else {
             setTrip(data);
@@ -92,7 +91,7 @@ export default function ActiveReturnScreen() {
         } catch {
           if (!mounted) return;
           setTrip(null);
-          setErrorMessage("귀가 세션 정보를 불러오지 못했어요.");
+          setErrorMessage("귀가 정보를 불러오지 못했어요.");
         } finally {
           if (mounted) {
             setLoading(false);
@@ -110,7 +109,7 @@ export default function ActiveReturnScreen() {
 
   async function handleCancelTrip() {
     if (!user || !trip) {
-      setErrorMessage("귀가 세션 정보를 찾을 수 없어요.");
+      setErrorMessage("귀가 정보를 찾을 수 없어요.");
       return;
     }
 
@@ -122,7 +121,7 @@ export default function ActiveReturnScreen() {
     setCancelling(false);
 
     if (error) {
-      setErrorMessage("귀가를 취소하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setErrorMessage("귀가를 멈추지 못했어요. 잠시 뒤 다시 해주세요");
       return;
     }
 
@@ -139,139 +138,127 @@ export default function ActiveReturnScreen() {
           ) : (
             <>
               <Text style={styles.eta}>
-                {remainingMinutes === null ? "-" : `${remainingMinutes}분`}
+                {remainingMinutes === null ? "-" : remainingMinutes}
               </Text>
-              <Text style={styles.etaLabel}>예상 남은 시간</Text>
+              <Text style={styles.etaUnit}>분 남음</Text>
             </>
           )}
         </View>
-        <Text style={styles.description}>
-          상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+        {trip ? (
+          <Text style={styles.etaCaption}>
+            도착 예정 {formatTime(trip.expected_arrival_at)}
+          </Text>
+        ) : null}
+        <Text style={styles.privacy}>
+          상세 위치는 공유되지 않아요. 도착 상태와 알림만 전달돼요.
         </Text>
       </Card>
 
       {missingTrip ? (
         <Card tone="warm">
-          <Text style={styles.cardTitle}>진행 중인 귀가 정보를 찾을 수 없어요</Text>
-          <Text style={styles.description}>
-            귀가 설정 화면에서 새 귀가 세션을 시작해주세요.
+          <Text style={styles.cardTitle}>진행 중인 귀가가 없어요</Text>
+          <Text style={styles.copy}>
+            새로 귀가를 시작해 주세요.
           </Text>
           <AppButton
             icon={Clock3}
             onPress={() => router.replace("/home/return-setup")}
-            title="귀가 설정으로 이동"
+            size="md"
+            title="귀가 시작하기"
             variant="secondary"
           />
-        </Card>
-      ) : null}
-
-      {trip ? (
-        <Card tone="blue">
-          <Text style={styles.cardTitle}>생성된 귀가 세션</Text>
-          <Text style={styles.description}>예상 도착 {formatTime(trip.expected_arrival_at)}</Text>
-          <Text style={styles.tripId}>trip id: {trip.id}</Text>
         </Card>
       ) : null}
 
       {errorMessage ? (
         <Card tone="warm">
           <Text style={styles.cardTitle}>다시 확인이 필요해요</Text>
-          <Text style={styles.description}>{errorMessage}</Text>
+          <Text style={styles.copy}>{errorMessage}</Text>
         </Card>
       ) : null}
 
       {recipientStatus === "failed" ? (
         <Card tone="warm">
-          <Text style={styles.cardTitle}>알림 받을 사람 저장 확인 필요</Text>
-          <Text style={styles.description}>
-            귀가 세션은 시작됐지만, 선택한 알림 받을 사람 저장은 완료되지 않았어요.
+          <Text style={styles.cardTitle}>알림 받을 사람 확인이 필요해요</Text>
+          <Text style={styles.copy}>
+            귀가는 시작됐지만 알림 받을 사람 저장이 끝나지 않았어요.
           </Text>
         </Card>
       ) : null}
 
       {notificationStatus === "failed" ? (
         <Card tone="warm">
-          <Text style={styles.cardTitle}>알림 기록 확인 필요</Text>
-          <Text style={styles.description}>
-            귀가 상태는 저장됐지만, 연결된 사람에게 보여줄 알림 기록은 완료되지 않았어요.
+          <Text style={styles.cardTitle}>알림 확인이 필요해요</Text>
+          <Text style={styles.copy}>
+            귀가는 저장됐지만 알림 전달이 아직 끝나지 않았어요.
           </Text>
         </Card>
       ) : null}
 
       {helpRequested ? (
-        <Card tone="warm">
-          <Text style={styles.cardTitle}>도움 요청을 보냈어요</Text>
-          <Text style={styles.description}>
-            연결된 사람에게 확인이 필요한 상태로 표시돼요. 상세 위치는 계속 공유되지 않아요.
+        <Card tone="danger">
+          <Text style={styles.cardTitle}>도움이 필요하다고 알렸어요</Text>
+          <Text style={styles.copy}>
+            연결된 사람에게 확인이 필요한 상태로 보여요. 상세 위치는 공유되지 않아요.
           </Text>
         </Card>
       ) : null}
 
       {extensionRequested ? (
         <Card tone="warm">
-          <Text style={styles.cardTitle}>연장 요청을 보냈어요</Text>
-          <Text style={styles.description}>
-            연결된 사람이 수락하면 예상 도착 시간이 갱신돼요.
+          <Text style={styles.cardTitle}>도착이 늦어진다고 알렸어요</Text>
+          <Text style={styles.copy}>
+            상대가 괜찮다고 하면 도착 시간이 바뀌어요.
           </Text>
         </Card>
       ) : null}
 
       {trip ? (
-        <>
-          <Card>
-            {activeTimeline.map((item) => (
-              <ListItem
-                detail={item.detail}
-                icon={item.icon}
-                key={item.title}
-                title={item.title}
-              />
-            ))}
-          </Card>
-
-          <View style={styles.actions}>
-            <AppButton
-              icon={QrCode}
-              onPress={() =>
-                router.push({
-                  pathname: "/home/qr-arrival",
-                  params: { tripId: trip.id },
-                })
-              }
-              title="QR로 도착 인증"
-            />
-            <AppButton
-              icon={Clock3}
-              onPress={() =>
-                router.push({
-                  pathname: "/home/time-extension",
-                  params: { tripId: trip.id },
-                })
-              }
-              title="시간 연장 요청"
-              variant="secondary"
-            />
-            <AppButton
-              disabled={helpRequested}
-              icon={MessageCircleWarning}
-              onPress={() =>
-                router.push({
-                  pathname: "/home/help-request",
-                  params: { tripId: trip.id },
-                })
-              }
-              title={helpRequested ? "도움 요청 보냄" : "도움 요청"}
-              variant="danger"
-            />
+        <View style={styles.actions}>
+          <AppButton
+            icon={QrCode}
+            onPress={() =>
+              router.push({
+                pathname: "/home/qr-arrival",
+                params: { tripId: trip.id },
+              })
+            }
+            title="QR로 도착 확인"
+          />
+          <AppButton
+            icon={Clock3}
+            onPress={() =>
+              router.push({
+                pathname: "/home/time-extension",
+                params: { tripId: trip.id },
+              })
+            }
+            title="도착 시간이 늦어져요"
+            variant="secondary"
+          />
+          <AppButton
+            disabled={helpRequested}
+            icon={MessageCircleWarning}
+            onPress={() =>
+              router.push({
+                pathname: "/home/help-request",
+                params: { tripId: trip.id },
+              })
+            }
+            title={helpRequested ? "도움 요청함" : "도움이 필요해요"}
+            variant="danger"
+          />
+          <View style={styles.cancelWrap}>
             <AppButton
               disabled={cancelling}
               loading={cancelling}
               onPress={handleCancelTrip}
-              title="귀가 취소"
+              size="md"
+              title="귀가 그만하기"
               variant="ghost"
             />
           </View>
-        </>
+        </View>
       ) : null}
     </Screen>
   );
@@ -280,41 +267,49 @@ export default function ActiveReturnScreen() {
 const styles = StyleSheet.create({
   hero: {
     alignItems: "center",
-    gap: spacing.xl,
-    paddingVertical: spacing.xxl,
+    gap: spacing.lg,
+    paddingVertical: spacing.xl,
   },
   ring: {
-    width: 204,
-    height: 204,
-    borderRadius: 102,
+    width: 176,
+    height: 176,
+    borderRadius: 88,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.white,
-    borderWidth: 13,
+    borderWidth: 8,
     borderColor: colors.primarySoft,
   },
   eta: {
-    ...typography.title,
+    ...typography.display,
     color: colors.primaryDark,
   },
-  etaLabel: {
+  etaUnit: {
     ...typography.label,
     color: colors.textMuted,
+  },
+  etaCaption: {
+    ...typography.bodyStrong,
+    color: colors.primaryDark,
   },
   cardTitle: {
     ...typography.subheading,
     color: colors.text,
   },
-  description: {
+  copy: {
     ...typography.body,
     color: colors.textMuted,
+  },
+  privacy: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: "500",
     textAlign: "center",
   },
-  tripId: {
-    ...typography.caption,
-    color: colors.primaryDark,
-  },
   actions: {
-    gap: spacing.md,
+    gap: spacing.sm,
+  },
+  cancelWrap: {
+    marginTop: spacing.xs,
   },
 });

@@ -50,12 +50,12 @@ export default function ConnectPersonScreen() {
       const { data, error } = await createConnectionInvite(user.id, relationshipType);
 
       if (error || !data) {
-        setMessage("초대 코드를 만들지 못했어요. 잠시 후 다시 시도해주세요.");
+        setMessage("초대 코드를 만들지 못했어요. 잠시 뒤 다시 해주세요");
         return;
       }
 
       setCreatedInvite(data);
-      setMessage("초대 코드가 만들어졌어요.");
+      setMessage("초대 코드를 만들었어요");
     } catch {
       setMessage("초대 코드를 만들지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -69,9 +69,9 @@ export default function ConnectPersonScreen() {
     setCopying(true);
     try {
       await Clipboard.setStringAsync(createdInvite.rawToken);
-      setMessage("초대 코드를 복사했어요.");
+      setMessage("복사했어요");
     } catch {
-      setMessage("복사하지 못했어요. 코드를 직접 전달해주세요.");
+      setMessage("복사가 안 됐어요. 코드를 직접 전달해 주세요");
     } finally {
       setCopying(false);
     }
@@ -89,22 +89,23 @@ export default function ConnectPersonScreen() {
           />
           <AppButton
             onPress={() => router.back()}
+            size="md"
             title="돌아가기"
-            variant="secondary"
+            variant="ghost"
           />
         </View>
       }
     >
       <SectionHeader
-        title="관계 연결"
-        description="확인 상대나 알림 받을 사람을 초대합니다."
+        title="사람 연결"
+        description="도착을 함께 확인할 사람을 초대해요."
       />
 
-      <Card tone="mint">
-        <Link2 color={colors.primaryDark} size={34} strokeWidth={2.3} />
+      <Card>
+        <Link2 color={colors.primary} size={34} strokeWidth={2.3} />
         <Text style={styles.cardTitle}>초대 코드</Text>
         <Text style={styles.copy}>
-          초대 코드는 한 번만 화면에 보여주고, DB에는 해시만 저장합니다.
+          초대 코드는 이 화면에서만 보여요. 안전하게 보관돼요.
         </Text>
       </Card>
 
@@ -136,8 +137,8 @@ export default function ConnectPersonScreen() {
 
       {createdInvite ? (
         <Card tone="blue">
-          <StatusChip label="초대 생성 완료" tone="active" />
-          <Text style={styles.cardTitle}>전달할 초대 코드</Text>
+          <StatusChip label="초대를 만들었어요" tone="active" />
+          <Text style={styles.cardTitle}>전달할 코드</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -148,7 +149,7 @@ export default function ConnectPersonScreen() {
             </Text>
           </ScrollView>
           <Text style={styles.copy}>
-            복사 버튼으로 전달하면 줄바꿈 없이 정확한 코드가 복사됩니다.
+            복사 버튼을 누르면 정확하게 복사돼요.
           </Text>
           <AppButton
             icon={Copy}
@@ -160,7 +161,7 @@ export default function ConnectPersonScreen() {
           <AppButton
             icon={Check}
             onPress={() => router.replace("/connections")}
-            title="연결 목록으로 이동"
+            title="연결 목록으로"
             variant="secondary"
           />
         </Card>
@@ -196,14 +197,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   optionSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.surfaceMint,
   },
   optionText: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textMuted,
   },
   optionTextSelected: {

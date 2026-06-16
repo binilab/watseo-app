@@ -27,7 +27,7 @@ export default function PermissionsScreen() {
     setSaving(false);
 
     if (error) {
-      setMessage("온보딩 상태를 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("저장이 안 됐어요. 잠시 뒤 다시 해주세요");
       return;
     }
 
@@ -42,25 +42,25 @@ export default function PermissionsScreen() {
           icon={CheckCircle2}
           loading={saving}
           onPress={finishOnboarding}
-          title="완료하고 홈으로 이동"
+          title="시작하기"
         />
       }
     >
       <SectionHeader
-        title="권한은 아직 요청하지 않아요"
-        description="이번 단계에서는 실제 위치, 알림, 카메라 권한을 호출하지 않고 안내 UI만 보여줍니다."
+        title="권한은 나중에 받아요"
+        description="지금은 어떤 게 필요한지 안내만 해드려요."
       />
 
       <Card tone="mint">
         <View style={styles.summary}>
-          <Text style={styles.big}>3가지 준비 항목</Text>
-          <Text style={styles.copy}>실제 권한 요청은 Supabase 및 기능 구현 단계 이후에 연결합니다.</Text>
+          <Text style={styles.big}>3가지 안내 항목</Text>
+          <Text style={styles.copy}>필요할 때 권한을 요청할게요.</Text>
         </View>
       </Card>
 
-      <Card tone="blue">
+      <Card>
         <Text style={styles.privacy}>
-          상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+          상세 위치는 공유되지 않아요. 도착 상태와 알림만 전달돼요.
         </Text>
       </Card>
 

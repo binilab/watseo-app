@@ -19,20 +19,20 @@ export default function ArrivedScreen() {
           />
           <AppButton
             onPress={() => router.replace("/home")}
-            title="홈으로 돌아가기"
+            title="홈으로"
             variant="secondary"
           />
         </View>
       }
     >
-      <Card tone="mint" style={styles.completeCard}>
+      <Card tone="success" style={styles.completeCard}>
         <View style={styles.check}>
-          <CheckCircle2 color={colors.primaryDark} size={62} strokeWidth={2.2} />
+          <CheckCircle2 color={colors.success} size={62} strokeWidth={2.2} />
         </View>
         <StatusChip label={status.label} tone={status.tone} />
         <Text style={styles.title}>왔어요</Text>
         <Text style={styles.copy}>
-          도착 확인이 완료되었고 알림 받을 사람에게 완료 상태가 전달되는 화면입니다.
+          도착을 확인했어요. 연결된 사람에게도 알려드릴게요.
         </Text>
       </Card>
     </Screen>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.primaryDark,
+    color: colors.success,
   },
   copy: {
     ...typography.body,

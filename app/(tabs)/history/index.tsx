@@ -2,7 +2,14 @@ import { router } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { CalendarCheck2, RotateCw } from "lucide-react-native";
 
-import { AppButton, Card, ListItem, Screen, SectionHeader, StatusChip } from "@/src/components";
+import {
+  AppButton,
+  Card,
+  EmptyState,
+  HistoryTripCard,
+  Screen,
+  SectionHeader,
+} from "@/src/components";
 import { useTripHistory } from "@/src/features/history/useTripHistory";
 import type { TripHistoryItem } from "@/src/features/history/api";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
@@ -21,11 +28,11 @@ const ACTIVE_STATES = new Set<TripState>([
 const HISTORY_STATE_LABELS: Record<TripState, string> = {
   not_started: "기록 없음",
   on_the_way: "진행 중",
-  late: "진행 중",
-  arrived_verified: "도착 인증 완료",
-  arrived_partial: "QR 인증 완료",
-  extension_requested: "시간 연장 요청",
-  emergency_requested: "도움 요청",
+  late: "확인 필요",
+  arrived_verified: "도착 확인 완료",
+  arrived_partial: "도착 확인",
+  extension_requested: "늦어지는 중",
+  emergency_requested: "도움 필요",
   cancelled: "취소됨",
 };
 
@@ -35,14 +42,6 @@ function getResolvedState(item: TripHistoryItem): TripState {
   }
 
   return item.trip.state;
-}
-
-function getHistoryStateLabel(item: TripHistoryItem) {
-  const state = getResolvedState(item);
-
-  if (state === "late") return "확인 필요";
-
-  return HISTORY_STATE_LABELS[state];
 }
 
 function formatDateTime(value?: string | null) {
@@ -57,31 +56,22 @@ function formatDateTime(value?: string | null) {
 }
 
 function getHistoryDetail(item: TripHistoryItem) {
-  const parts = [
-    `예상 ${formatDateTime(item.trip.expected_arrival_at)}`,
-    `시작 ${formatDateTime(item.trip.started_at)}`,
-  ];
+  const parts = [`시작 ${formatDateTime(item.trip.started_at)}`];
 
   if (item.trip.arrived_at) {
     parts.push(`도착 ${formatDateTime(item.trip.arrived_at)}`);
-  }
-
-  if (item.trip.cancelled_at) {
+  } else if (item.trip.cancelled_at) {
     parts.push(`취소 ${formatDateTime(item.trip.cancelled_at)}`);
-  }
-
-  if (item.latestVerificationAt) {
-    parts.push(`인증 ${formatDateTime(item.latestVerificationAt)}`);
+  } else {
+    parts.push(`예상 ${formatDateTime(item.trip.expected_arrival_at)}`);
   }
 
   return parts.join(" · ");
 }
 
-function getMeta(item: TripHistoryItem) {
-  const state = getResolvedState(item);
-
-  if (state === "cancelled") {
-    return "취소됨";
+function getFlagMeta(item: TripHistoryItem) {
+  if (getResolvedState(item) === "cancelled") {
+    return undefined;
   }
 
   const flags = [];
@@ -90,7 +80,7 @@ function getMeta(item: TripHistoryItem) {
   if (item.hasTimeExtensionRequest) flags.push("시간 연장");
   if (item.hasHelpRequest) flags.push("도움 요청");
 
-  return flags.length > 0 ? flags.join(" · ") : getHistoryStateLabel(item);
+  return flags.length > 0 ? flags.join(" · ") : undefined;
 }
 
 export default function HistoryScreen() {
@@ -98,29 +88,27 @@ export default function HistoryScreen() {
   const completedCount = history.filter((item) =>
     item.trip.state === "arrived_partial" || item.trip.state === "arrived_verified",
   ).length;
-  const completedStatus = getStatusDisplay("arrived_verified");
 
   return (
     <Screen>
       <SectionHeader
         title="귀가 기록"
-        description="내 귀가 세션과 도착 인증 상태를 확인합니다."
+        description="지난 귀가를 다시 봐요."
       />
 
       <Card tone="mint">
         <View style={styles.summary}>
           <View style={styles.iconWrap}>
-            <CalendarCheck2 color={colors.primaryDark} size={30} strokeWidth={2.4} />
+            <CalendarCheck2 color={colors.primaryDark} size={26} strokeWidth={2.4} />
           </View>
           <View style={styles.summaryCopy}>
-            <StatusChip
-              label={loading ? "기록 확인 중" : `${history.length}개 기록`}
-              tone={completedStatus.tone}
-            />
-            <Text style={styles.big}>
+            <Text style={styles.summaryCount}>
+              {loading ? "기록 확인 중" : `${history.length}개 기록`}
+            </Text>
+            <Text style={styles.summaryDetail}>
               {completedCount > 0
-                ? `${completedCount}개의 도착 인증 기록이 있어요`
-                : "귀가 기록을 실제 DB에서 불러와요"}
+                ? `도착을 확인한 기록이 ${completedCount}개 있어요`
+                : "귀가를 시작하면 이곳에 기록이 쌓여요"}
             </Text>
           </View>
         </View>
@@ -134,7 +122,8 @@ export default function HistoryScreen() {
             icon={RotateCw}
             loading={refreshing}
             onPress={() => void refreshHistory()}
-            title="다시 불러오기"
+            size="md"
+            title="다시 시도"
             variant="secondary"
           />
         </Card>
@@ -144,48 +133,55 @@ export default function HistoryScreen() {
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator color={colors.primaryDark} />
-            <Text style={styles.copy}>귀가 기록을 불러오고 있어요.</Text>
+            <Text style={styles.copy}>불러오고 있어요.</Text>
           </View>
         ) : null}
 
         {!loading && history.length === 0 ? (
-          <View style={styles.centered}>
-            <Text style={styles.cardTitle}>아직 귀가 기록이 없어요</Text>
-            <Text style={styles.copy}>귀가를 시작하면 이곳에 기록이 쌓입니다.</Text>
-          </View>
+          <EmptyState
+            description="귀가를 시작하면 이곳에 기록이 쌓여요."
+            icon={CalendarCheck2}
+            title="아직 귀가 기록이 없어요"
+          />
         ) : null}
 
         {!loading
-          ? history.map((item) => {
+          ? history.map((item, index) => {
               const state = getResolvedState(item);
-              const stateLabel = getHistoryStateLabel(item);
               const isActive = ACTIVE_STATES.has(state);
+              const status = getStatusDisplay(state);
 
               return (
-                <ListItem
-                  detail={getHistoryDetail(item)}
-                  key={item.trip.id}
-                  meta={getMeta(item)}
-                  onPress={
-                    isActive
-                      ? () =>
-                          router.push({
-                            pathname: "/home/active",
-                            params: { tripId: item.trip.id },
-                          })
-                      : undefined
-                  }
-                  title={`${item.destinationName} · ${stateLabel}`}
-                />
+                <View key={item.trip.id}>
+                  {index > 0 ? <View style={styles.divider} /> : null}
+                  <HistoryTripCard
+                    detail={getHistoryDetail(item)}
+                    meta={getFlagMeta(item)}
+                    onPress={
+                      isActive
+                        ? () =>
+                            router.push({
+                              pathname: "/home/active",
+                              params: { tripId: item.trip.id },
+                            })
+                        : undefined
+                    }
+                    statusLabel={
+                      state === "cancelled" ? "취소됨" : HISTORY_STATE_LABELS[state]
+                    }
+                    statusTone={status.tone}
+                    title={item.destinationName}
+                  />
+                </View>
               );
             })
           : null}
       </Card>
 
-      <Card tone="blue">
+      <Card>
         <Text style={styles.cardTitle}>개인정보 안내</Text>
         <Text style={styles.copy}>
-          기록에는 도착 장소 이름과 도착 인증 상태만 표시합니다. 상세 위치, 좌표, 이동 경로는 표시하지 않아요.
+          장소 이름과 도착 상태만 보여요. 상세 위치는 표시하지 않아요.
         </Text>
       </Card>
     </Screen>
@@ -199,8 +195,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconWrap: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -208,11 +204,16 @@ const styles = StyleSheet.create({
   },
   summaryCopy: {
     flex: 1,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  big: {
+  summaryCount: {
     ...typography.subheading,
     color: colors.text,
+  },
+  summaryDetail: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: "500",
   },
   cardTitle: {
     ...typography.subheading,
@@ -225,6 +226,10 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: "center",
     gap: spacing.sm,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
 });

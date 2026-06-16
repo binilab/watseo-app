@@ -66,7 +66,7 @@ export default function TimeExtensionScreen() {
 
         if (error || !data) {
           setTrip(null);
-          setMessage("진행 중인 귀가를 찾을 수 없어요.");
+          setMessage("진행 중인 귀가가 없어요.");
         } else {
           setTrip(data);
         }
@@ -74,7 +74,7 @@ export default function TimeExtensionScreen() {
         if (!mounted) return;
         console.error("fetch active trip for time extension failed", error);
         setTrip(null);
-        setMessage("진행 중인 귀가를 찾을 수 없어요.");
+        setMessage("진행 중인 귀가가 없어요.");
       } finally {
         if (mounted) {
           setLoading(false);
@@ -91,7 +91,7 @@ export default function TimeExtensionScreen() {
 
   async function handleSubmit() {
     if (!user || !trip || !requestedExpectedArrivalAt) {
-      setMessage("진행 중인 귀가를 찾을 수 없어요.");
+      setMessage("진행 중인 귀가가 없어요.");
       return;
     }
 
@@ -107,7 +107,7 @@ export default function TimeExtensionScreen() {
     setSubmitting(false);
 
     if (error || !data) {
-      setMessage("시간 연장 요청을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
       return;
     }
 
@@ -129,12 +129,13 @@ export default function TimeExtensionScreen() {
             icon={Send}
             loading={submitting}
             onPress={handleSubmit}
-            title="연장 요청 보내기"
+            title="늦어진다고 알리기"
           />
           <AppButton
             onPress={() => router.back()}
+            size="md"
             title="돌아가기"
-            variant="secondary"
+            variant="ghost"
           />
         </View>
       }
@@ -142,14 +143,14 @@ export default function TimeExtensionScreen() {
       <StatusChip label={status.label} tone={status.tone} />
       <Text style={styles.title}>도착 시간이 조금 늦어져요</Text>
       <Text style={styles.copy}>
-        연결된 사람이 수락하면 새 예상 도착 시간이 반영돼요.
+        상대가 괜찮다고 하면 도착 시간이 바뀌어요.
       </Text>
 
       {loading ? (
         <Card>
           <View style={styles.loadingRow}>
             <ActivityIndicator color={colors.primaryDark} />
-            <Text style={styles.copy}>진행 중인 귀가를 확인하고 있어요.</Text>
+            <Text style={styles.copy}>잠깐만요, 확인하고 있어요.</Text>
           </View>
         </Card>
       ) : null}
@@ -157,11 +158,12 @@ export default function TimeExtensionScreen() {
       {!loading && !trip ? (
         <Card tone="warm">
           <Text style={styles.cardTitle}>진행 중인 귀가가 없어요</Text>
-          <Text style={styles.copy}>귀가를 시작한 뒤 시간 연장을 요청할 수 있어요.</Text>
+          <Text style={styles.copy}>귀가를 시작한 뒤에 알릴 수 있어요.</Text>
           <AppButton
             icon={Clock3}
             onPress={() => router.replace("/home")}
-            title="홈으로 돌아가기"
+            size="md"
+            title="홈으로"
             variant="secondary"
           />
         </Card>
@@ -170,9 +172,9 @@ export default function TimeExtensionScreen() {
       {trip ? (
         <Card tone="warm">
           <Clock3 color={colors.amber} size={34} strokeWidth={2.4} />
-          <Text style={styles.cardTitle}>새 예상 도착 시간</Text>
+          <Text style={styles.cardTitle}>새 도착 시간</Text>
           <Text style={styles.time}>{formatTime(requestedExpectedArrivalAt?.toISOString())}</Text>
-          <Text style={styles.copy}>현재 예상 {formatTime(trip.expected_arrival_at)}</Text>
+          <Text style={styles.copy}>지금 도착 예정 {formatTime(trip.expected_arrival_at)}</Text>
           <View style={styles.optionRow}>
             {EXTENSION_OPTIONS.map((minutes) => (
               <Pressable
@@ -203,9 +205,9 @@ export default function TimeExtensionScreen() {
       ) : null}
 
       <Card>
-        <Text style={styles.cardTitle}>알림 문구</Text>
+        <Text style={styles.cardTitle}>이렇게 전달돼요</Text>
         <Text style={styles.copy}>
-          시간 연장 요청 상태와 필요한 알림만 전달돼요. 상세 위치는 계속 공유되지 않아요.
+          늦어진다는 소식과 알림만 전달돼요. 상세 위치는 공유되지 않아요.
         </Text>
       </Card>
 
@@ -252,14 +254,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   timeOptionSelected: {
     borderColor: colors.amber,
-    backgroundColor: colors.surfaceWarm,
+    backgroundColor: colors.amberSoft,
   },
   timeOptionText: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textMuted,
   },
   timeOptionTextSelected: {

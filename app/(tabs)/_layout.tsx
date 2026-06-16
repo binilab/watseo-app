@@ -1,7 +1,7 @@
 import { Redirect, Tabs } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
+import { CircleUserRound, Clock3, Home, MapPinned, UsersRound } from "lucide-react-native";
 import { Screen } from "@/src/components";
 import { getOnboardingRoute, type OnboardingRoute } from "@/src/features/auth/onboarding";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
@@ -68,20 +68,22 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primaryDark,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "700",
         },
         tabBarStyle: {
           height: TAB_BAR_HEIGHT,
-          left: 18,
-          right: 18,
+          left: 12,
+          right: 12,
           bottom: TAB_BAR_BOTTOM_OFFSET,
-          paddingTop: 9,
-          paddingBottom: 11,
+          paddingTop: 10,
+          paddingBottom: 12,
           borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.border,
           borderRadius: radius.xl,
           backgroundColor: colors.surface,
           position: "absolute",
@@ -118,6 +120,13 @@ export default function TabLayout() {
         options={{
           title: "기록",
           tabBarIcon: ({ color, size }) => <Clock3 color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="my"
+        options={{
+          title: "마이",
+          tabBarIcon: ({ color, size }) => <CircleUserRound color={color} size={size} />,
         }}
       />
     </Tabs>

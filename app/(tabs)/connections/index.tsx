@@ -1,9 +1,17 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
-import { CalendarClock, HeartHandshake, Link2, RotateCw, UserPlus } from "lucide-react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { CalendarClock, HeartHandshake, RotateCw, UserPlus } from "lucide-react-native";
 
-import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
+import {
+  AppButton,
+  Card,
+  EmptyState,
+  ListItem,
+  PersonStatusCard,
+  Screen,
+  SectionHeader,
+} from "@/src/components";
 import {
   type ConnectedPerson,
   type RecipientActiveTrip,
@@ -12,7 +20,8 @@ import {
 } from "@/src/features/connections/api";
 import { useConnections } from "@/src/features/connections/useConnections";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
-import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { colors, spacing, typography } from "@/src/theme/tokens";
+import type { StatusTone } from "@/src/types";
 
 const RELATIONSHIP_TYPE_LABELS: Record<RelationshipType, string> = {
   friend: "친구",
@@ -25,10 +34,19 @@ const RELATIONSHIP_TYPE_LABELS: Record<RelationshipType, string> = {
 const TRIP_STATE_LABELS: Record<string, string> = {
   on_the_way: "귀가 중",
   late: "확인 필요",
-  arrived_partial: "QR 인증 완료",
-  extension_requested: "시간 연장 요청",
-  emergency_requested: "도움 요청",
+  arrived_partial: "도착 확인",
+  extension_requested: "늦어지는 중",
+  emergency_requested: "도움 필요",
   cancelled: "취소됨",
+};
+
+const TRIP_STATE_TONES: Record<string, StatusTone> = {
+  on_the_way: "active",
+  late: "pending",
+  arrived_partial: "success",
+  extension_requested: "pending",
+  emergency_requested: "danger",
+  cancelled: "neutral",
 };
 
 function formatExpectedArrival(value?: string) {
@@ -52,32 +70,36 @@ function ConnectionRow({
   connection: ConnectedPerson;
 }) {
   const displayName = connection.profile?.display_name ?? "연결된 사람";
-  const avatarUrl = connection.profile?.avatar_url;
-  const tripDetail = activeTrip
-    ? `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
-    : "도착 인증 알림을 함께 확인할 수 있어요.";
-  const needsHelp = activeTrip?.state === "emergency_requested";
+  const relationshipLabel =
+    RELATIONSHIP_TYPE_LABELS[connection.relationship.relationship_type];
+
+  if (!activeTrip) {
+    return (
+      <PersonStatusCard
+        avatarUrl={connection.profile?.avatar_url}
+        detail="도착 소식을 함께 확인해요."
+        name={displayName}
+        relationshipLabel={relationshipLabel}
+      />
+    );
+  }
+
+  const statusLabel = TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state;
+  const statusTone = TRIP_STATE_TONES[activeTrip.state] ?? "neutral";
+  const detail =
+    activeTrip.state === "emergency_requested"
+      ? `확인이 필요해요 · 도착 예정 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+      : `도착 예정 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`;
 
   return (
-    <View style={styles.connectionRow}>
-      <View style={styles.avatar}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-        ) : (
-          <Text style={styles.avatarText}>{displayName.slice(0, 1)}</Text>
-        )}
-      </View>
-      <View style={styles.connectionCopy}>
-        <Text style={styles.connectionName}>{displayName}</Text>
-        <Text style={needsHelp ? styles.connectionAlert : styles.connectionDetail}>
-          {needsHelp ? `${tripDetail} · 확인이 필요해요` : tripDetail}
-        </Text>
-        {activeTrip ? <Text style={styles.connectionSubtle}>도착 예정 장소</Text> : null}
-      </View>
-      <Text style={styles.meta}>
-        {RELATIONSHIP_TYPE_LABELS[connection.relationship.relationship_type]}
-      </Text>
-    </View>
+    <PersonStatusCard
+      avatarUrl={connection.profile?.avatar_url}
+      detail={detail}
+      name={displayName}
+      relationshipLabel={relationshipLabel}
+      statusLabel={statusLabel}
+      statusTone={statusTone}
+    />
   );
 }
 
@@ -113,7 +135,7 @@ export default function ConnectionsDashboardScreen() {
         code: "code" in error ? error.code : null,
         message: error.message,
       });
-      setActionMessage("시간 연장 요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setActionMessage("처리가 안 됐어요. 잠시 뒤 다시 해주세요");
       return;
     }
 
@@ -123,35 +145,28 @@ export default function ConnectionsDashboardScreen() {
   return (
     <Screen>
       <SectionHeader
-        title="연결 대시보드"
-        description="도착 알림을 함께 확인할 사람과 초대 상태를 관리합니다."
+        title="연결"
+        description="서로의 도착을 확인해요."
       />
 
-      {user?.email ? <Text style={styles.accountText}>현재 계정 {user.email}</Text> : null}
-
       <Card tone="mint">
-        <Text style={styles.big}>{loading ? "연결 확인 중" : `${connections.length}명 연결됨`}</Text>
-        <Text style={styles.copy}>
-          {activeTrips.length > 0
-            ? `${activeTrips.length}개의 귀가 상태를 확인할 수 있어요.`
-            : connections.length > 0
-            ? "상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요."
-            : "초대 코드를 만들거나 받은 초대 코드를 입력해 연결을 시작하세요."}
+        <Text style={styles.summaryCount}>
+          {loading ? "연결 확인 중" : `${connections.length}명 연결됨`}
         </Text>
-        <View style={styles.actions}>
-          <AppButton
-            icon={UserPlus}
-            onPress={() => router.push("/connections/connect")}
-            title="확인 상대 추가"
-            variant="secondary"
-          />
-          <AppButton
-            icon={Link2}
-            onPress={() => router.push("/connections/invite")}
-            title="초대 코드 입력"
-            variant="secondary"
-          />
-        </View>
+        <Text style={styles.summaryCopy}>
+          {activeTrips.length > 0
+            ? `지금 ${activeTrips.length}명의 도착을 확인할 수 있어요.`
+            : connections.length > 0
+            ? "상세 위치는 공유되지 않아요. 도착 상태와 알림만 전달돼요."
+            : "초대 코드를 만들거나 받아서 연결을 시작해요."}
+        </Text>
+        <AppButton
+          icon={UserPlus}
+          onPress={() => router.push("/connections/connect")}
+          size="md"
+          title="확인 상대 추가"
+          variant="secondary"
+        />
       </Card>
 
       {errorMessage ? (
@@ -162,49 +177,12 @@ export default function ConnectionsDashboardScreen() {
             icon={RotateCw}
             loading={refreshing}
             onPress={() => void refreshConnections()}
-            title="다시 불러오기"
+            size="md"
+            title="다시 시도"
             variant="secondary"
           />
         </Card>
       ) : null}
-
-      <Card>
-        <View style={styles.row}>
-          <Text style={styles.cardTitle}>연결된 사람</Text>
-          {refreshing ? <ActivityIndicator color={colors.primaryDark} /> : null}
-        </View>
-
-        {loading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator color={colors.primaryDark} />
-            <Text style={styles.copy}>연결 목록을 불러오고 있어요.</Text>
-          </View>
-        ) : null}
-
-        {!loading && connections.length === 0 ? (
-          <View style={styles.centered}>
-            <Text style={styles.emptyTitle}>아직 연결된 사람이 없어요</Text>
-            <Text style={styles.copy}>accepted 상태의 연결만 이 목록에 표시됩니다.</Text>
-          </View>
-        ) : null}
-
-        {!loading
-          ? connections.map((connection) => {
-              const profileId = getConnectedProfileId(connection);
-              const activeTrip = profileId
-                ? activeTripsByOwnerId.get(profileId)
-                : undefined;
-
-              return (
-                <ConnectionRow
-                  activeTrip={activeTrip}
-                  connection={connection}
-                  key={connection.relationship.id}
-                />
-              );
-            })
-          : null}
-      </Card>
 
       {!loading && activeTrips.length > 0 ? (
         <Card tone="warm">
@@ -221,12 +199,12 @@ export default function ConnectionsDashboardScreen() {
                 <ListItem
                   detail={
                     activeTrip.state === "emergency_requested"
-                      ? `확인이 필요해요 · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
-                      : `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 예상 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+                      ? `확인이 필요해요 · 도착 예정 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
+                      : `${TRIP_STATE_LABELS[activeTrip.state] ?? activeTrip.state} · 도착 예정 ${formatExpectedArrival(activeTrip.expectedArrivalAt)}`
                   }
                   title={
                     activeTrip.state === "emergency_requested"
-                      ? `${activeTrip.ownerProfile?.display_name ?? "연결된 사람"} · 도움 요청`
+                      ? `${activeTrip.ownerProfile?.display_name ?? "연결된 사람"} · 도움 필요`
                       : activeTrip.ownerProfile?.display_name ?? "연결된 사람"
                   }
                 />
@@ -238,8 +216,9 @@ export default function ConnectionsDashboardScreen() {
                       onPress={() =>
                         void handleTimeExtensionResponse(pendingRequest.id, "accepted")
                       }
+                      size="md"
                       style={styles.responseButton}
-                      title="연장 수락"
+                      title="괜찮아요"
                       variant="secondary"
                     />
                     <AppButton
@@ -247,8 +226,9 @@ export default function ConnectionsDashboardScreen() {
                       onPress={() =>
                         void handleTimeExtensionResponse(pendingRequest.id, "declined")
                       }
+                      size="md"
                       style={styles.responseButton}
-                      title="거절"
+                      title="지금은 어려워요"
                       variant="ghost"
                     />
                   </View>
@@ -259,15 +239,54 @@ export default function ConnectionsDashboardScreen() {
         </Card>
       ) : null}
 
-      <Card tone="blue">
+      <Card>
+        <View style={styles.row}>
+          <Text style={styles.cardTitle}>연결된 사람</Text>
+          {refreshing ? <ActivityIndicator color={colors.primaryDark} /> : null}
+        </View>
+
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator color={colors.primaryDark} />
+            <Text style={styles.copy}>불러오고 있어요.</Text>
+          </View>
+        ) : null}
+
+        {!loading && connections.length === 0 ? (
+          <EmptyState
+            description="초대 코드로 연결을 시작해요."
+            icon={HeartHandshake}
+            title="아직 연결된 사람이 없어요"
+          />
+        ) : null}
+
+        {!loading
+          ? connections.map((connection, index) => {
+              const profileId = getConnectedProfileId(connection);
+              const activeTrip = profileId
+                ? activeTripsByOwnerId.get(profileId)
+                : undefined;
+
+              return (
+                <View key={connection.relationship.id}>
+                  {index > 0 ? <View style={styles.divider} /> : null}
+                  <ConnectionRow activeTrip={activeTrip} connection={connection} />
+                </View>
+              );
+            })
+          : null}
+      </Card>
+
+      <Card>
         <ListItem
           detail="새 확인 상대를 초대할 수 있어요."
           icon={HeartHandshake}
           onPress={() => router.push("/connections/connect")}
           title="초대 만들기"
         />
+        <View style={styles.divider} />
         <ListItem
-          detail="받은 초대 코드를 입력해 연결할 수 있어요."
+          detail="받은 초대 코드로 연결해요."
           icon={CalendarClock}
           onPress={() => router.push("/connections/invite")}
           title="초대 수락"
@@ -278,25 +297,21 @@ export default function ConnectionsDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  big: {
+  summaryCount: {
     ...typography.heading,
     color: colors.primaryDark,
+  },
+  summaryCopy: {
+    ...typography.body,
+    color: colors.textMuted,
   },
   copy: {
     ...typography.body,
     color: colors.textMuted,
-    marginBottom: spacing.sm,
-  },
-  accountText: {
-    ...typography.caption,
-    color: colors.textSubtle,
   },
   cardTitle: {
     ...typography.subheading,
     color: colors.text,
-  },
-  actions: {
-    gap: spacing.md,
   },
   row: {
     alignItems: "center",
@@ -307,59 +322,11 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: "center",
     gap: spacing.sm,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
   },
-  emptyTitle: {
-    ...typography.label,
-    color: colors.text,
-  },
-  connectionRow: {
-    minHeight: 72,
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    backgroundColor: colors.surfaceMint,
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
-  avatarText: {
-    ...typography.label,
-    color: colors.primaryDark,
-  },
-  connectionCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  connectionName: {
-    ...typography.label,
-    color: colors.text,
-  },
-  connectionDetail: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  connectionAlert: {
-    ...typography.caption,
-    color: colors.danger,
-  },
-  connectionSubtle: {
-    ...typography.caption,
-    color: colors.textSubtle,
-  },
-  meta: {
-    ...typography.caption,
-    color: colors.primary,
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
   activeTripBlock: {
     gap: spacing.sm,

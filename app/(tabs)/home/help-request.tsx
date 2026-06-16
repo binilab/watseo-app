@@ -11,7 +11,7 @@ import {
   requestHelp,
   type Trip,
 } from "@/src/features/trips/api";
-import { colors, spacing, typography } from "@/src/theme/tokens";
+import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
 function formatTime(value?: string | null) {
@@ -62,7 +62,7 @@ export default function HelpRequestScreen() {
 
         if (tripResult.data.owner_id !== user.id) {
           setTrip(null);
-          setMessage("내 귀가 정보를 찾을 수 없어요.");
+          setMessage("내 귀가를 찾을 수 없어요.");
           return;
         }
 
@@ -102,7 +102,7 @@ export default function HelpRequestScreen() {
       });
 
       if (error || !data) {
-        setMessage("도움 요청을 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+        setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
         return;
       }
 
@@ -117,7 +117,7 @@ export default function HelpRequestScreen() {
       console.error("request help failed", error, {
         tripId: trip.id,
       });
-      setMessage("도움 요청을 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("전달이 안 됐어요. 잠시 뒤 다시 해주세요");
     } finally {
       setSubmitting(false);
     }
@@ -132,13 +132,14 @@ export default function HelpRequestScreen() {
             icon={MessageCircleWarning}
             loading={submitting}
             onPress={handleRequestHelp}
-            title="도움 요청 보내기"
+            title="도움 요청하기"
             variant="danger"
           />
           <AppButton
             onPress={() => router.back()}
+            size="md"
             title="취소"
-            variant="secondary"
+            variant="ghost"
           />
         </View>
       }
@@ -146,17 +147,19 @@ export default function HelpRequestScreen() {
       <StatusChip label={status.label} tone={status.tone} />
       <Text style={styles.title}>연결된 사람에게 지금 상황을 알릴까요?</Text>
       <Text style={styles.copy}>
-        상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+        상세 위치는 공유되지 않아요. 도착 상태와 알림만 전달돼요.
       </Text>
 
-      <Card tone="warm">
-        <Phone color={colors.danger} size={34} strokeWidth={2.4} />
-        <Text style={styles.cardTitle}>도움 요청</Text>
+      <Card tone="danger">
+        <View style={styles.dangerIcon}>
+          <Phone color={colors.white} size={26} strokeWidth={2.4} />
+        </View>
+        <Text style={styles.cardTitle}>도움이 필요해요</Text>
         {loading ? <ActivityIndicator color={colors.primaryDark} /> : null}
         <Text style={styles.copy}>
           {trip
-            ? `현재 귀가 상태를 확인 필요 상태로 바꾸고, 알림 받을 사람에게 기록을 남깁니다. 예상 도착 ${formatTime(trip.expected_arrival_at)}`
-            : "진행 중인 귀가가 있어야 도움 요청을 보낼 수 있어요."}
+            ? `귀가 상태를 '확인 필요'로 바꾸고 알림 받을 사람에게 알려요. 도착 예정 ${formatTime(trip.expected_arrival_at)}`
+            : "귀가 중일 때 도움을 요청할 수 있어요."}
         </Text>
       </Card>
 
@@ -164,21 +167,22 @@ export default function HelpRequestScreen() {
         <Card>
           <Text style={styles.cardTitle}>진행 중인 귀가가 없어요</Text>
           <Text style={styles.copy}>
-            홈에서 현재 귀가 상황을 다시 확인하거나 새 귀가를 시작해주세요.
+            홈에서 다시 확인하거나 새로 시작해 주세요.
           </Text>
           <AppButton
             icon={RotateCw}
             onPress={() => router.replace("/home")}
-            title="홈으로 돌아가기"
+            size="md"
+            title="홈으로"
             variant="secondary"
           />
         </Card>
       ) : null}
 
       <Card>
-        <Text style={styles.cardTitle}>전달되는 내용</Text>
+        <Text style={styles.cardTitle}>이렇게 전달돼요</Text>
         <Text style={styles.copy}>
-          도움 요청 상태와 필요한 알림만 기록합니다. 상세 주소, 좌표, 이동 경로는 포함하지 않아요.
+          도움이 필요하다는 소식과 알림만 전달돼요. 상세 위치는 공유되지 않아요.
         </Text>
       </Card>
 
@@ -202,6 +206,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...typography.subheading,
     color: colors.text,
+  },
+  dangerIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.danger,
   },
   message: {
     ...typography.caption,

@@ -19,24 +19,24 @@ function getAuthMessage(message: string, mode: "signIn" | "signUp") {
   }
 
   if (normalizedMessage.includes("email not confirmed")) {
-    return "이메일 확인을 마친 뒤 다시 로그인해주세요.";
+    return "이메일 확인 후 다시 로그인해 주세요";
   }
 
   if (normalizedMessage.includes("user already registered")) {
-    return "이미 가입된 이메일이에요. 로그인으로 이어가주세요.";
+    return "이미 가입된 이메일이에요. 로그인해 주세요";
   }
 
   if (normalizedMessage.includes("password")) {
-    return "비밀번호 조건을 다시 확인해주세요.";
+    return "비밀번호를 다시 확인해 주세요";
   }
 
   if (normalizedMessage.includes("email")) {
-    return "이메일 주소를 다시 확인해주세요.";
+    return "이메일 주소를 확인해 주세요";
   }
 
   return mode === "signIn"
-    ? "로그인하지 못했어요. 입력 내용을 확인하고 다시 시도해주세요."
-    : "계정을 만들지 못했어요. 잠시 후 다시 시도해주세요.";
+    ? "로그인이 안 됐어요. 다시 확인해 주세요"
+    : "계정을 만들지 못했어요. 잠시 뒤 다시 해주세요";
 }
 
 export default function LoginScreen() {
@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
   async function signIn() {
     if (!supabase) {
-      setMessage("로그인 설정이 아직 준비되지 않았어요.");
+      setMessage("로그인 준비 중이에요. 잠시만요.");
       return;
     }
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
     const { error: routeError, route } = await getOnboardingRoute(data.user.id);
 
     if (routeError) {
-      setMessage("온보딩 상태를 확인하지 못했어요. 사용 방식을 다시 확인해주세요.");
+      setMessage("사용 방식을 다시 확인해 주세요");
     }
 
     router.replace(route);
@@ -100,7 +100,7 @@ export default function LoginScreen() {
 
   async function signUp() {
     if (!supabase) {
-      setMessage("로그인 설정이 아직 준비되지 않았어요.");
+      setMessage("로그인 준비 중이에요. 잠시만요.");
       return;
     }
 
@@ -138,7 +138,7 @@ export default function LoginScreen() {
             icon={LogIn}
             loading={submitting === "signIn"}
             onPress={signIn}
-            title="이메일로 로그인"
+            title="로그인"
           />
           <AppButton
             disabled={!canSubmit}
@@ -152,13 +152,13 @@ export default function LoginScreen() {
       }
     >
       <StatusChip
-        label={isSupabaseConfigured ? "계정 연결 준비 완료" : "로그인 설정 필요"}
+        label={isSupabaseConfigured ? "반가워요" : "로그인 준비 중"}
         tone={isSupabaseConfigured ? "active" : "neutral"}
       />
       <View style={styles.header}>
-        <Text style={styles.title}>왔어에 오신 걸 환영해요</Text>
+        <Text style={styles.title}>다시 왔어요</Text>
         <Text style={styles.description}>
-          이메일과 비밀번호로 계정을 만들거나 로그인할 수 있어요.
+          처음이라면 계정을 만들어주세요.
         </Text>
       </View>
 
@@ -199,19 +199,19 @@ export default function LoginScreen() {
         {message ? <Text style={styles.message}>{message}</Text> : null}
         {!isSupabaseConfigured ? (
           <Text style={styles.hint}>
-            앱 설정을 마친 뒤 로그인할 수 있어요.
+            조금만 기다려 주세요.
           </Text>
         ) : null}
       </Card>
 
-      <Card>
+      <Card tone="mint">
         <View style={styles.cardHeader}>
           <UserPlus color={colors.primaryDark} size={20} strokeWidth={2.4} />
-          <Text style={styles.cardTitle}>회원가입 후 자동 준비</Text>
+          <Text style={styles.cardTitle}>새 계정을 만들면</Text>
         </View>
-        <Text style={styles.item}>계정 프로필은 서버 trigger가 자동 생성</Text>
-        <Text style={styles.item}>앱에서는 profiles row를 중복 생성하지 않음</Text>
-        <Text style={styles.item}>귀가 세션과 도착 인증 연결은 다음 단계에서 진행</Text>
+        <Text style={styles.item}>닉네임과 사용 방식을 이어서 설정해요.</Text>
+        <Text style={styles.item}>도착 장소와 알림 받을 사람을 연결할 수 있어요.</Text>
+        <Text style={styles.item}>상세 위치는 공유되지 않고, 도착 상태만 전달돼요.</Text>
       </Card>
     </Screen>
   );
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceSoft,
     color: colors.text,
     paddingHorizontal: spacing.lg,
   },

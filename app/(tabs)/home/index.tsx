@@ -1,24 +1,12 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
-import { Clock3, LogOut, MapPin, Navigation, QrCode, Save, UserRound } from "lucide-react-native";
-import {
-  AppButton,
-  Card,
-  ListItem,
-  Screen,
-  SectionHeader,
-  StatusChip,
-} from "@/src/components";
-import { homeMetrics, quickActions } from "@/src/data/mock";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Clock3, MapPin, Navigation, UsersRound } from "lucide-react-native";
+import { ActiveTripCard, AppButton, Card, ListItem, Screen } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
-import {
-  fetchProfile,
-  updateProfileDisplayName,
-  type Profile,
-} from "@/src/features/profile/api";
+import { fetchProfile } from "@/src/features/profile/api";
 import { fetchLatestActiveTrip, type Trip } from "@/src/features/trips/api";
-import { colors, radius, spacing, typography } from "@/src/theme/tokens";
+import { colors, spacing, typography } from "@/src/theme/tokens";
 import { getStatusDisplay } from "@/src/types";
 
 function formatTime(value?: string | null) {
@@ -31,26 +19,19 @@ function formatTime(value?: string | null) {
 }
 
 export default function HomeScreen() {
-  const { signOut, user } = useAuthSession();
-  const [signingOut, setSigningOut] = useState(false);
-  const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
+  const { user } = useAuthSession();
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
   const [activeTripLoading, setActiveTripLoading] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [nickname, setNickname] = useState("");
-  const [savingNickname, setSavingNickname] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const status = getStatusDisplay(activeTrip?.state ?? "not_started");
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
-      async function loadActiveTrip() {
+      async function loadHome() {
         if (!user) {
           setActiveTrip(null);
-          setProfile(null);
-          setNickname("");
+          setDisplayName(null);
           setActiveTripLoading(false);
           return;
         }
@@ -73,16 +54,15 @@ export default function HomeScreen() {
 
         if (profileResult.error) {
           console.error("fetch profile failed", profileResult.error);
-          setProfile(null);
+          setDisplayName(null);
         } else {
-          setProfile(profileResult.data ?? null);
-          setNickname(profileResult.data?.display_name ?? "");
+          setDisplayName(profileResult.data?.display_name ?? null);
         }
 
         setActiveTripLoading(false);
       }
 
-      void loadActiveTrip();
+      void loadHome();
 
       return () => {
         mounted = false;
@@ -90,289 +70,108 @@ export default function HomeScreen() {
     }, [user]),
   );
 
-  async function handleSaveNickname() {
-    if (!user) return;
-
-    const trimmedNickname = nickname.trim();
-
-    if (!trimmedNickname) {
-      setProfileMessage("닉네임을 입력해주세요.");
-      return;
-    }
-
-    setSavingNickname(true);
-    setProfileMessage(null);
-
-    const { data, error } = await updateProfileDisplayName(user.id, trimmedNickname);
-
-    setSavingNickname(false);
-
-    if (error || !data) {
-      console.error("update profile display name failed", error);
-      setProfileMessage("닉네임을 저장하지 못했어요. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
-    setProfile(data);
-    setNickname(data.display_name);
-    setProfileMessage("닉네임을 저장했어요.");
-  }
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    setSignOutMessage(null);
-
-    const { error } = await signOut();
-
-    setSigningOut(false);
-
-    if (error) {
-      setSignOutMessage("로그아웃하지 못했어요. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
-    router.replace("/login");
-  }
+  const activeStatus = activeTrip ? getStatusDisplay(activeTrip.state) : null;
+  const greeting = activeTrip
+    ? "지금 귀가 중이에요"
+    : displayName
+    ? `${displayName}님, 오늘도 조심히 다녀와요`
+    : "오늘도 조심히 다녀와요";
 
   return (
     <Screen>
       <View style={styles.header}>
-        <StatusChip label={status.label} tone={status.tone} />
-        <Text style={styles.title}>오늘도 편하게 도착을 알려요</Text>
-        <Text style={styles.description}>
-          도착지와 확인 상대를 고른 뒤 귀가를 시작할 수 있어요.
-        </Text>
+        <Text style={styles.brand}>왔어</Text>
+        <Text style={styles.greeting}>{greeting}</Text>
       </View>
 
-      {user ? (
-        <Card>
-          <View style={styles.accountHeader}>
-            <View style={styles.accountIcon}>
-              <UserRound color={colors.primaryDark} size={22} strokeWidth={2.4} />
-            </View>
-            <View style={styles.destinationCopy}>
-              <Text style={styles.cardTitle}>{profile?.display_name ?? "새 사용자"}</Text>
-              <Text style={styles.muted}>{user.email ?? "이메일 정보 없음"}</Text>
-            </View>
-          </View>
-          <TextInput
-            onChangeText={(value) => {
-              setNickname(value);
-              setProfileMessage(null);
-            }}
-            placeholder="닉네임"
-            placeholderTextColor={colors.textSubtle}
-            style={styles.input}
-            value={nickname}
-          />
-          <AppButton
-            disabled={savingNickname}
-            icon={Save}
-            loading={savingNickname}
-            onPress={handleSaveNickname}
-            title="닉네임 저장"
-            variant="secondary"
-          />
-          {profileMessage ? <Text style={styles.profileMessage}>{profileMessage}</Text> : null}
-        </Card>
-      ) : null}
-
-      {activeTrip ? (
-        <Card tone="warm" style={styles.primaryCard}>
-          <View style={styles.destinationRow}>
-            <View style={styles.destinationIcon}>
-              <Clock3 color={colors.amber} size={28} strokeWidth={2.5} />
-            </View>
-            <View style={styles.destinationCopy}>
-              <Text style={styles.cardTitle}>진행 중인 귀가가 있어요</Text>
-              <Text style={styles.muted}>
-                {getStatusDisplay(activeTrip.state).label} · 예상 도착{" "}
-                {formatTime(activeTrip.expected_arrival_at)}
-              </Text>
-            </View>
-          </View>
-          <AppButton
-            icon={Navigation}
-            onPress={() =>
-              router.push({
-                pathname: "/home/active",
-                params: { tripId: activeTrip.id },
-              })
-            }
-            title="내 귀가 상황 보기"
-          />
-        </Card>
+      {activeTrip && activeStatus ? (
+        <ActiveTripCard
+          actionIcon={Navigation}
+          actionLabel="내 귀가 보기"
+          detail={`${activeStatus.label} · 도착 예정 ${formatTime(activeTrip.expected_arrival_at)}`}
+          icon={Clock3}
+          onPress={() =>
+            router.push({
+              pathname: "/home/active",
+              params: { tripId: activeTrip.id },
+            })
+          }
+          statusLabel={activeStatus.label}
+          statusTone={activeStatus.tone}
+          title="도착하면 바로 알려드릴게요"
+          tone="blue"
+        />
       ) : activeTripLoading ? (
         <Card>
           <View style={styles.loadingRow}>
             <ActivityIndicator color={colors.primaryDark} />
-            <Text style={styles.muted}>진행 중인 귀가를 확인하고 있어요.</Text>
+            <Text style={styles.muted}>잠깐만요, 확인하고 있어요.</Text>
           </View>
         </Card>
       ) : (
-        <Card tone="mint" style={styles.primaryCard}>
-          <View style={styles.destinationRow}>
-            <View style={styles.destinationIcon}>
-              <MapPin color={colors.primaryDark} size={28} strokeWidth={2.5} />
-            </View>
-            <View style={styles.destinationCopy}>
-              <Text style={styles.cardTitle}>기본 도착지</Text>
-              <Text style={styles.muted}>
-                도착 장소 관리에서 사용할 장소를 설정하세요.
-              </Text>
-            </View>
-          </View>
-          <AppButton
-            icon={Navigation}
-            onPress={() => router.push("/home/return-setup")}
-            title="귀가 설정하기"
-          />
-        </Card>
+        <ActiveTripCard
+          actionIcon={Navigation}
+          actionLabel="귀가 시작"
+          detail="어디로 갈지, 누구에게 알릴지 골라주세요."
+          icon={Navigation}
+          onPress={() => router.push("/home/return-setup")}
+          statusLabel="귀가 전"
+          statusTone="neutral"
+          title="이제 출발하시나요?"
+          tone="blue"
+        />
       )}
 
-      <View style={styles.metrics}>
-        {homeMetrics.map((item) => (
-          <Card key={item.label} style={styles.metricCard}>
-            <Text style={styles.metricValue}>{item.value}</Text>
-            <Text style={styles.metricLabel}>{item.label}</Text>
-          </Card>
-        ))}
-      </View>
-
-      <SectionHeader title="빠른 이동" />
       <Card>
-        {quickActions.map((item) => (
-          <ListItem
-            detail={item.detail}
-            icon={item.icon}
-            key={item.title}
-            onPress={() => {
-              if (item.route) router.push(item.route);
-            }}
-            title={item.title}
-          />
-        ))}
+        <ListItem
+          detail="자주 가는 곳을 등록해요"
+          icon={MapPin}
+          onPress={() => router.push("/places")}
+          title="도착 장소"
+        />
+        <View style={styles.divider} />
+        <ListItem
+          detail="도착을 함께 확인할 사람"
+          icon={UsersRound}
+          onPress={() => router.push("/connections")}
+          title="연결"
+        />
+        <View style={styles.divider} />
+        <ListItem
+          detail="지난 귀가를 다시 봐요"
+          icon={Clock3}
+          onPress={() => router.push("/history")}
+          title="귀가 기록"
+        />
       </Card>
-
-      <AppButton
-        icon={QrCode}
-        onPress={() => router.push("/places")}
-        title="장소 QR 보기"
-        variant="secondary"
-      />
-
-      {user ? (
-        <View style={styles.accountActions}>
-          {signOutMessage ? <Text style={styles.signOutMessage}>{signOutMessage}</Text> : null}
-          <AppButton
-            icon={LogOut}
-            loading={signingOut}
-            onPress={handleSignOut}
-            title="로그아웃"
-            variant="ghost"
-          />
-        </View>
-      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    gap: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-  },
-  description: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-  destinationRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    alignItems: "center",
-  },
-  destinationIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  destinationCopy: {
-    flex: 1,
     gap: spacing.xs,
+    paddingTop: spacing.xs,
   },
-  accountHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
+  brand: {
+    ...typography.label,
+    color: colors.primary,
   },
-  accountIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceMint,
-  },
-  input: {
-    ...typography.body,
-    minHeight: 54,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    color: colors.text,
-    paddingHorizontal: spacing.lg,
-  },
-  cardTitle: {
-    ...typography.subheading,
+  greeting: {
+    ...typography.title,
     color: colors.text,
   },
   muted: {
     ...typography.body,
     color: colors.textMuted,
   },
-  metrics: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  primaryCard: {
-    gap: spacing.lg,
-  },
   loadingRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
   },
-  metricCard: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  metricValue: {
-    ...typography.subheading,
-    color: colors.primaryDark,
-  },
-  metricLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  accountActions: {
-    gap: spacing.sm,
-  },
-  signOutMessage: {
-    ...typography.caption,
-    color: colors.danger,
-    textAlign: "center",
-  },
-  profileMessage: {
-    ...typography.caption,
-    color: colors.primaryDark,
-    textAlign: "center",
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
 });

@@ -31,7 +31,7 @@ export default function PartialVerificationScreen() {
       if (!tripId) {
         setTrip(null);
         setLoading(false);
-        setMessage("도착 인증된 귀가 정보를 찾을 수 없어요.");
+        setMessage("도착한 귀가를 찾을 수 없어요.");
         return;
       }
 
@@ -43,7 +43,7 @@ export default function PartialVerificationScreen() {
 
         if (error || !data) {
           setTrip(null);
-          setMessage("도착 인증된 귀가 정보를 불러오지 못했어요.");
+          setMessage("정보를 불러오지 못했어요.");
         } else {
           setTrip(data);
           setMessage(null);
@@ -72,26 +72,24 @@ export default function PartialVerificationScreen() {
         <AppButton
           icon={CheckCircle2}
           onPress={() => router.push("/home")}
-          title="홈으로 이동"
+          title="홈으로"
         />
       }
     >
       <StatusChip label={status.label} tone={status.tone} />
-      <Text style={styles.title}>QR 인증이 완료됐어요</Text>
+      <Text style={styles.title}>도착을 확인했어요</Text>
 
-      <Card tone="warm">
-        <Text style={styles.cardTitle}>확인된 내용</Text>
+      <Card tone="success">
+        <Text style={styles.cardTitle}>확인한 내용</Text>
         {loading ? <ActivityIndicator color={colors.primaryDark} /> : null}
-        <Text style={styles.copy}>상태: QR 인증 완료 / 위치 확인은 아직 연결 전</Text>
-        <Text style={styles.copy}>도착 인증 시간: {formatTime(trip?.arrived_at)}</Text>
-        <Text style={styles.copy}>방식: QR 도착 인증</Text>
-        {trip ? <Text style={styles.tripId}>trip id: {trip.id}</Text> : null}
+        <Text style={styles.copy}>QR로 도착을 확인했어요.</Text>
+        <Text style={styles.copy}>확인 시간 {formatTime(trip?.arrived_at)}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.cardTitle}>알림 예정</Text>
+        <Text style={styles.cardTitle}>알림 안내</Text>
         <Text style={styles.copy}>
-          연결된 사람에게 도착 인증 상태를 전달하는 알림 기록은 다음 단계에서 연결합니다.
+          연결된 사람에게 도착 소식을 전할 준비를 하고 있어요.
         </Text>
       </Card>
 
@@ -112,10 +110,6 @@ const styles = StyleSheet.create({
   copy: {
     ...typography.body,
     color: colors.textMuted,
-  },
-  tripId: {
-    ...typography.caption,
-    color: colors.primaryDark,
   },
   message: {
     ...typography.caption,

@@ -39,7 +39,7 @@ export default function PlaceQrCodeScreen() {
 
         if (error || !data) {
           setDestination(null);
-          setErrorMessage("선택한 도착 장소를 불러오지 못했어요.");
+          setErrorMessage("장소를 불러오지 못했어요.");
         } else {
           setDestination(data);
           setErrorMessage(null);
@@ -47,7 +47,7 @@ export default function PlaceQrCodeScreen() {
       } catch {
         if (!mounted) return;
         setDestination(null);
-        setErrorMessage("선택한 도착 장소를 불러오지 못했어요.");
+        setErrorMessage("장소를 불러오지 못했어요.");
       }
       setLoading(false);
     }
@@ -64,29 +64,29 @@ export default function PlaceQrCodeScreen() {
 
     try {
       await Clipboard.setStringAsync(destination.qr_token);
-      setCopyMessage("QR 코드 값을 복사했어요.");
+      setCopyMessage("복사했어요");
     } catch {
-      setCopyMessage("복사하지 못했어요. QR 코드 값을 직접 전달해주세요.");
+      setCopyMessage("복사가 안 됐어요. 코드를 직접 전달해 주세요");
     }
   };
 
   return (
     <Screen>
       <SectionHeader
-        title="장소 QR 코드 값"
-        description="선택한 도착 장소의 QR token을 확인하고 복사합니다."
+        title="장소 QR 코드"
+        description="장소에 붙여둘 QR 코드예요."
       />
 
       {!destinationId ? (
         <Card tone="warm">
           <Text style={styles.cardTitle}>먼저 장소를 선택해주세요</Text>
           <Text style={styles.copy}>
-            먼저 장소 목록에서 QR을 볼 장소를 선택해주세요.
+            장소 목록에서 먼저 골라주세요.
           </Text>
           <AppButton
             icon={MapPin}
             onPress={() => router.replace("/places")}
-            title="장소 목록으로 이동"
+            title="장소 목록으로"
             variant="secondary"
           />
         </Card>
@@ -97,18 +97,18 @@ export default function PlaceQrCodeScreen() {
           {loading ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator color={colors.primaryDark} />
-              <Text style={styles.copy}>도착 장소를 확인하고 있어요.</Text>
+              <Text style={styles.copy}>잠깐만요, 확인하고 있어요.</Text>
             </View>
           ) : (
             <>
               <StatusChip
-                label={destination ? `${destination.name} · 도착 인증용` : "장소 확인 필요"}
+                label={destination ? `${destination.name} · 도착 확인용` : "장소 확인 필요"}
                 tone={destination ? "active" : "neutral"}
               />
               <Text style={styles.copy}>
                 {destination
-                  ? "아래 QR 코드 값을 복사해 도착 인증 테스트에 사용할 수 있어요."
-                  : "선택한 장소 정보를 확인하지 못했어요."}
+                  ? "아래 QR 코드를 복사해 도착 확인에 쓸 수 있어요."
+                  : "장소를 확인하지 못했어요."}
               </Text>
             </>
           )}
@@ -122,7 +122,7 @@ export default function PlaceQrCodeScreen() {
           <AppButton
             icon={RotateCw}
             onPress={() => router.replace("/places")}
-            title="장소 목록으로 이동"
+            title="장소 목록으로"
             variant="secondary"
           />
         </Card>
@@ -131,7 +131,7 @@ export default function PlaceQrCodeScreen() {
       {destination ? (
         <Card>
           <Text style={styles.cardTitle}>{destination.name}</Text>
-          <Text style={styles.copy}>이 장소의 QR 코드 값입니다.</Text>
+          <Text style={styles.copy}>이 장소의 QR 코드예요.</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -142,8 +142,7 @@ export default function PlaceQrCodeScreen() {
           <AppButton
             icon={Copy}
             onPress={handleCopyQrToken}
-            title="QR 코드 값 복사"
-            variant="secondary"
+            title="QR 코드 복사"
           />
           {copyMessage ? <Text style={styles.message}>{copyMessage}</Text> : null}
         </Card>
@@ -151,17 +150,18 @@ export default function PlaceQrCodeScreen() {
 
       {destination ? (
         <Card>
-        <Text style={styles.cardTitle}>설치 안내</Text>
+        <Text style={styles.cardTitle}>안내</Text>
         <Text style={styles.copy}>
-          실제 QR 이미지는 아직 생성하지 않습니다. 테스트 중에는 이 값을 복사해 QR 도착 인증 화면에 붙여넣어주세요.
+          지금은 QR 이미지 대신 코드를 복사해서 써요.
         </Text>
         </Card>
       ) : null}
 
       <AppButton
         onPress={() => router.replace("/places")}
-        title="장소 목록으로 이동"
-        variant="secondary"
+        size="md"
+        title="장소 목록으로"
+        variant="ghost"
         style={styles.backButton}
       />
     </Screen>

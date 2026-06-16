@@ -10,10 +10,15 @@ import {
 } from "react-native";
 import { MapPin, Navigation, RotateCw, UserRound } from "lucide-react-native";
 
-import { AppButton, Card, ListItem, Screen, SectionHeader } from "@/src/components";
 import {
-  type ConnectedPerson,
-} from "@/src/features/connections/api";
+  AppButton,
+  Card,
+  EmptyState,
+  ListItem,
+  Screen,
+  SectionHeader,
+} from "@/src/components";
+import { type ConnectedPerson } from "@/src/features/connections/api";
 import {
   createTripSession,
   fetchLatestActiveTrip,
@@ -41,6 +46,17 @@ function formatExpectedArrival(minutesFromNow: number) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function StepLabel({ step, title }: { step: number; title: string }) {
+  return (
+    <View style={styles.stepRow}>
+      <View style={styles.stepBadge}>
+        <Text style={styles.stepNumber}>{step}</Text>
+      </View>
+      <Text style={styles.stepTitle}>{title}</Text>
+    </View>
+  );
 }
 
 export default function ReturnSetupScreen() {
@@ -127,22 +143,22 @@ export default function ReturnSetupScreen() {
 
   const handleStartTrip = async () => {
     if (!userId || !selectedDestination) {
-      setFormMessage("도착 장소를 먼저 선택해주세요.");
+      setFormMessage("어디로 가는지 골라주세요");
       return;
     }
 
     if (resolvedMinutes <= 0) {
-      setFormMessage("예상 도착 시간을 확인해주세요.");
+      setFormMessage("도착 시간을 확인해 주세요");
       return;
     }
 
     if (selectedConnectionIds.length === 0) {
-      setFormMessage("알림 받을 사람을 1명 이상 선택해주세요.");
+      setFormMessage("누구에게 알려줄지 골라주세요");
       return;
     }
 
     if (existingActiveTrip) {
-      setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+      setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
       router.replace({
         pathname: "/home/active",
         params: { tripId: existingActiveTrip.id },
@@ -169,13 +185,13 @@ export default function ReturnSetupScreen() {
 
       if (activeTripResult.error) {
         console.error("check active trip before create failed", activeTripResult.error);
-        setFormMessage("진행 중인 귀가 확인에 실패했어요. 잠시 후 다시 시도해주세요.");
+        setFormMessage("확인이 안 됐어요. 잠시 뒤 다시 해주세요");
         return;
       }
 
       if (activeTripResult.data) {
         setExistingActiveTrip(activeTripResult.data);
-        setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+        setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
         router.replace({
           pathname: "/home/active",
           params: { tripId: activeTripResult.data.id },
@@ -197,13 +213,13 @@ export default function ReturnSetupScreen() {
           destinationId: selectedDestination.id,
           recipientCount: selectedRecipients.length,
         });
-        setFormMessage("귀가 세션을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+        setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 해주세요");
         return;
       }
 
       if (blockedTrip) {
         setExistingActiveTrip(blockedTrip);
-        setFormMessage("진행 중인 귀가가 있어요. 기존 귀가 상황으로 이동합니다.");
+        setFormMessage("이미 귀가 중이에요. 그쪽으로 이동할게요");
         router.replace({
           pathname: "/home/active",
           params: { tripId: blockedTrip.id },
@@ -223,7 +239,7 @@ export default function ReturnSetupScreen() {
         destinationId: selectedDestination.id,
         recipientCount: selectedRecipients.length,
       });
-      setFormMessage("귀가 세션을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setFormMessage("귀가를 시작하지 못했어요. 잠시 뒤 다시 해주세요");
     } finally {
       setStarting(false);
     }
@@ -243,14 +259,14 @@ export default function ReturnSetupScreen() {
     >
       <SectionHeader
         title="귀가 설정"
-        description="도착 장소와 알림 받을 사람, 예상 도착 시간을 선택합니다."
+        description="어디로, 누구에게, 언제쯤인지 골라주세요."
       />
 
       {existingActiveTrip ? (
         <Card tone="warm">
-          <Text style={styles.cardTitle}>진행 중인 귀가가 있어요</Text>
+          <Text style={styles.cardTitle}>이미 귀가 중이에요</Text>
           <Text style={styles.copy}>
-            v1에서는 한 번에 하나의 귀가만 진행할 수 있어요. 기존 귀가 상황으로 이동해주세요.
+            한 번에 하나만 할 수 있어요.
           </Text>
           <AppButton
             icon={Navigation}
@@ -260,7 +276,8 @@ export default function ReturnSetupScreen() {
                 params: { tripId: existingActiveTrip.id },
               })
             }
-            title="내 귀가 상황 보기"
+            size="md"
+            title="내 귀가 보기"
             variant="secondary"
           />
         </Card>
@@ -274,46 +291,44 @@ export default function ReturnSetupScreen() {
             icon={RotateCw}
             loading={refreshing}
             onPress={() => void refreshSetupData()}
-            title="다시 불러오기"
+            size="md"
+            title="다시 시도"
             variant="secondary"
           />
         </Card>
       ) : null}
 
-      <Card tone="mint">
-        <View style={styles.row}>
-          <Text style={styles.label}>도착 장소</Text>
-          {loading ? <ActivityIndicator color={colors.primaryDark} /> : null}
-        </View>
+      <Card>
+        <StepLabel step={1} title="어디로 가고 있나요?" />
 
         {loading ? (
-          <Text style={styles.copy}>도착 장소를 불러오고 있어요.</Text>
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={colors.primaryDark} />
+            <Text style={styles.copy}>도착 장소를 불러오고 있어요.</Text>
+          </View>
         ) : null}
 
         {!loading && destinations.length === 0 ? (
-          <View style={styles.emptyBlock}>
-            <Text style={styles.emptyTitle}>먼저 도착 장소를 등록해주세요</Text>
-            <Text style={styles.copy}>귀가 세션은 도착 인증에 사용할 장소가 필요해요.</Text>
-            <AppButton
-              icon={MapPin}
-              onPress={() => router.push("/places")}
-              title="도착 장소 등록"
-              variant="secondary"
-            />
-          </View>
+          <EmptyState
+            actionLabel="도착 장소 등록"
+            description="도착을 확인할 장소가 필요해요."
+            icon={MapPin}
+            onActionPress={() => router.push("/places")}
+            title="도착 장소를 먼저 등록해요"
+          />
         ) : null}
 
         {!loading
           ? destinations.map((destination) => (
               <ListItem
-                detail="도착 인증에 사용할 장소"
+                detail="도착을 확인할 장소"
                 icon={MapPin}
                 key={destination.id}
-                meta={selectedDestinationId === destination.id ? "선택됨" : "선택"}
                 onPress={() => {
                   setSelectedDestinationId(destination.id);
                   setFormMessage(null);
                 }}
+                selected={selectedDestinationId === destination.id}
                 title={destination.name}
               />
             ))
@@ -321,21 +336,16 @@ export default function ReturnSetupScreen() {
       </Card>
 
       <Card>
-        <Text style={styles.label}>알림 받을 사람</Text>
+        <StepLabel step={2} title="누구에게 알려줄까요?" />
 
         {!loading && connections.length === 0 ? (
-          <View style={styles.emptyBlock}>
-            <Text style={styles.emptyTitle}>알림 받을 사람을 연결해주세요</Text>
-            <Text style={styles.copy}>
-              v1에서는 알림 받을 사람 1명 이상이 필요해요.
-            </Text>
-            <AppButton
-              icon={UserRound}
-              onPress={() => router.push("/connections")}
-              title="연결 관리로 이동"
-              variant="secondary"
-            />
-          </View>
+          <EmptyState
+            actionLabel="연결하러 가기"
+            description="알림 받을 사람이 한 명 이상 필요해요."
+            icon={UserRound}
+            onActionPress={() => router.push("/connections")}
+            title="알림 받을 사람을 연결해요"
+          />
         ) : null}
 
         {!loading
@@ -344,11 +354,11 @@ export default function ReturnSetupScreen() {
 
               return (
                 <ListItem
-                  detail="도착 인증 상태와 필요한 알림을 받을 수 있어요"
+                  detail="도착 상태와 알림을 받아요"
                   icon={UserRound}
                   key={connection.relationship.id}
-                  meta={selected ? "선택됨" : "선택"}
                   onPress={() => toggleConnection(connection.relationship.id)}
+                  selected={selected}
                   title={getConnectionName(connection)}
                 />
               );
@@ -357,41 +367,43 @@ export default function ReturnSetupScreen() {
 
         {!loading && connections.length > 0 && selectedConnectionIds.length === 0 ? (
           <Text style={styles.notice}>
-            알림 받을 사람을 1명 이상 선택해야 귀가를 시작할 수 있어요.
+            한 명 이상 골라야 시작할 수 있어요.
           </Text>
         ) : null}
       </Card>
 
-      <Card tone="warm">
-        <Text style={styles.label}>예상 도착 시간</Text>
+      <Card>
+        <StepLabel step={3} title="언제쯤 도착하나요?" />
         <View style={styles.optionRow}>
-          {ETA_OPTIONS.map((minutes) => (
-            <Pressable
-              accessibilityRole="button"
-              key={minutes}
-              onPress={() => {
-                setSelectedMinutes(minutes);
-                setCustomMinutes("");
-                setFormMessage(null);
-              }}
-              style={({ pressed }) => [
-                styles.timeOption,
-                !customMinutes && selectedMinutes === minutes ? styles.timeOptionSelected : null,
-                pressed ? styles.pressed : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.timeOptionText,
-                  !customMinutes && selectedMinutes === minutes
-                    ? styles.timeOptionTextSelected
-                    : null,
+          {ETA_OPTIONS.map((minutes) => {
+            const selected = !customMinutes && selectedMinutes === minutes;
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={minutes}
+                onPress={() => {
+                  setSelectedMinutes(minutes);
+                  setCustomMinutes("");
+                  setFormMessage(null);
+                }}
+                style={({ pressed }) => [
+                  styles.timeOption,
+                  selected ? styles.timeOptionSelected : null,
+                  pressed ? styles.pressed : null,
                 ]}
               >
-                {minutes}분
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={[
+                    styles.timeOptionText,
+                    selected ? styles.timeOptionTextSelected : null,
+                  ]}
+                >
+                  {minutes}분
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
         <TextInput
           keyboardType="number-pad"
@@ -399,14 +411,17 @@ export default function ReturnSetupScreen() {
             setCustomMinutes(value.replace(/[^0-9]/g, ""));
             setFormMessage(null);
           }}
-          placeholder="직접 입력: 분"
+          placeholder="직접 입력 (분)"
           placeholderTextColor={colors.textSubtle}
           style={styles.input}
           value={customMinutes}
         />
-        <Text style={styles.time}>{formatExpectedArrival(resolvedMinutes)}</Text>
+        <View style={styles.arrivalRow}>
+          <Text style={styles.arrivalLabel}>도착 예정</Text>
+          <Text style={styles.arrivalTime}>{formatExpectedArrival(resolvedMinutes)}</Text>
+        </View>
         <Text style={styles.copy}>
-          상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+          상세 위치는 공유되지 않아요. 도착 상태와 알림만 전달돼요.
         </Text>
       </Card>
 
@@ -416,26 +431,35 @@ export default function ReturnSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: {
-    ...typography.label,
-    color: colors.text,
-  },
   cardTitle: {
     ...typography.subheading,
     color: colors.text,
   },
-  row: {
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  stepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  stepNumber: {
+    ...typography.micro,
+    color: colors.white,
+  },
+  stepTitle: {
+    ...typography.subheading,
+    color: colors.text,
+  },
+  loadingRow: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  emptyBlock: {
-    gap: spacing.md,
-  },
-  emptyTitle: {
-    ...typography.label,
-    color: colors.text,
+    gap: spacing.sm,
   },
   optionRow: {
     flexDirection: "row",
@@ -450,14 +474,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   timeOptionSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.surfaceMint,
   },
   timeOptionText: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textMuted,
   },
   timeOptionTextSelected: {
@@ -468,15 +492,24 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
-    minHeight: 54,
+    minHeight: 52,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceSoft,
     color: colors.text,
     paddingHorizontal: spacing.lg,
   },
-  time: {
+  arrivalRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+  },
+  arrivalLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+  },
+  arrivalTime: {
     ...typography.title,
     color: colors.primaryDark,
   },

@@ -32,7 +32,7 @@ export type AppState =
 
 export type VerificationMethod = "none" | "qr" | "location" | "qr_location" | "manual";
 
-export type StatusTone = "active" | "pending" | "neutral" | "danger";
+export type StatusTone = "active" | "success" | "pending" | "neutral" | "danger";
 
 export type StatusDisplay = {
   label: string;
@@ -82,8 +82,8 @@ export type QuickAction = {
 export const STATUS_DISPLAY_BY_STATE: Record<AppState, StatusDisplay> = {
   not_started: { label: "귀가 전", tone: "neutral" },
   on_the_way: { label: "귀가 중", tone: "active" },
-  arrived_verified: { label: "도착 인증 완료", tone: "active" },
-  arrived_partial: { label: "QR 인증 완료", tone: "pending" },
+  arrived_verified: { label: "도착 확인 완료", tone: "success" },
+  arrived_partial: { label: "도착 확인", tone: "success" },
   late: { label: "확인 필요", tone: "pending" },
   extension_requested: { label: "시간 연장 요청", tone: "pending" },
   emergency_requested: { label: "도움 요청", tone: "danger" },

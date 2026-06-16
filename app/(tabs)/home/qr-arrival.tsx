@@ -15,18 +15,18 @@ import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 function getUserMessageForReason(reason: string) {
   if (reason === "token_mismatch") {
-    return "QR 코드 값이 도착 장소와 맞지 않아요.";
+    return "QR 코드가 이 장소와 맞지 않아요";
   }
 
   if (reason === "trip_not_found") {
-    return "진행 중인 귀가 정보를 찾을 수 없어요.";
+    return "진행 중인 귀가가 없어요";
   }
 
   if (reason === "destination_not_found") {
-    return "도착 장소 정보를 확인하지 못했어요.";
+    return "도착 장소를 확인하지 못했어요";
   }
 
-  return "QR 도착 인증을 완료하지 못했어요. 잠시 후 다시 시도해주세요.";
+  return "도착 확인이 안 됐어요. 잠시 뒤 다시 해주세요";
 }
 
 export default function QrArrivalScreen() {
@@ -60,8 +60,8 @@ export default function QrArrivalScreen() {
           setTrip(null);
           setMessage(
             tripId
-              ? "귀가 세션 정보를 불러오지 못했어요."
-              : "진행 중인 귀가 정보를 찾을 수 없어요.",
+              ? "귀가 정보를 불러오지 못했어요."
+              : "진행 중인 귀가가 없어요.",
           );
         } else {
           setTrip(result.data);
@@ -70,7 +70,7 @@ export default function QrArrivalScreen() {
       } catch {
         if (!mounted) return;
         setTrip(null);
-        setMessage("귀가 세션 정보를 불러오지 못했어요.");
+        setMessage("귀가 정보를 불러오지 못했어요.");
       } finally {
         if (mounted) {
           setLoading(false);
@@ -87,12 +87,12 @@ export default function QrArrivalScreen() {
 
   const handleVerify = async () => {
     if (!user || !trip) {
-      setMessage("진행 중인 귀가 정보를 찾을 수 없어요.");
+      setMessage("진행 중인 귀가가 없어요.");
       return;
     }
 
     if (!qrToken.trim()) {
-      setMessage("QR 코드 값을 입력해주세요.");
+      setMessage("QR 코드를 입력해 주세요");
       return;
     }
 
@@ -121,7 +121,7 @@ export default function QrArrivalScreen() {
         tripId: trip.id,
         error,
       });
-      setMessage("QR 도착 인증을 완료하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("도착 확인이 안 됐어요. 잠시 뒤 다시 해주세요");
     } finally {
       setVerifying(false);
     }
@@ -135,15 +135,15 @@ export default function QrArrivalScreen() {
           icon={CheckCircle2}
           loading={verifying}
           onPress={handleVerify}
-          title="QR 도착 인증"
+          title="도착 확인하기"
         />
       }
     >
-      <StatusChip label="코드 입력 인증" tone="pending" />
+      <StatusChip label="도착 확인" tone="pending" />
       <View style={styles.header}>
-        <Text style={styles.title}>QR 도착 인증</Text>
+        <Text style={styles.title}>QR로 도착 확인</Text>
         <Text style={styles.description}>
-          도착 장소에 붙여둔 QR 코드 값을 입력해 도착 인증을 완료합니다.
+          장소에 붙여둔 QR 코드를 입력하면 도착이 확인돼요.
         </Text>
       </View>
 
@@ -157,13 +157,13 @@ export default function QrArrivalScreen() {
         </View>
         <Text style={styles.scanText}>
           {trip
-            ? "테스트 중에는 장소 탭 → QR 보기에서 코드를 복사할 수 있어요."
-            : "진행 중인 귀가 정보를 확인하고 있어요."}
+            ? "장소 탭에서 QR 코드를 복사할 수 있어요."
+            : "잠깐만요, 확인하고 있어요."}
         </Text>
       </Card>
 
       <Card>
-        <Text style={styles.cardTitle}>QR 코드 값</Text>
+        <Text style={styles.cardTitle}>QR 코드</Text>
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
@@ -172,7 +172,7 @@ export default function QrArrivalScreen() {
             setQrToken(value.trim());
             setMessage(null);
           }}
-          placeholder="장소 QR token 붙여넣기"
+          placeholder="장소에 붙여둔 QR 코드 입력"
           placeholderTextColor={colors.textSubtle}
           style={styles.input}
           value={qrToken}
@@ -205,10 +205,10 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   scanBox: {
-    width: 230,
-    height: 230,
+    width: 220,
+    height: 220,
     borderRadius: radius.xl,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.primarySoft,
     borderStyle: "dashed",
     alignItems: "center",
@@ -222,11 +222,11 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
-    minHeight: 54,
+    minHeight: 52,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceSoft,
     color: colors.text,
     paddingHorizontal: spacing.lg,
   },

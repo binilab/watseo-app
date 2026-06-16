@@ -1,4 +1,4 @@
-import { ComponentType, ReactNode } from "react";
+import { ComponentType } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,8 +7,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius, shadows, spacing, typography } from "@/src/theme/tokens";
+import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 type IconComponent = ComponentType<{
   color?: string;
@@ -16,42 +15,50 @@ type IconComponent = ComponentType<{
   strokeWidth?: number;
 }>;
 
+type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Size = "lg" | "md" | "sm";
+
 type AppButtonProps = {
   title: string;
   onPress?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+  variant?: Variant;
+  size?: Size;
   icon?: IconComponent;
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
-  children?: ReactNode;
+};
+
+const FOREGROUND: Record<Variant, string> = {
+  primary: colors.white,
+  secondary: colors.primaryDark,
+  ghost: colors.textMuted,
+  danger: colors.white,
+};
+
+const HEIGHT: Record<Size, number> = {
+  lg: 54,
+  md: 48,
+  sm: 40,
+};
+
+const ICON_SIZE: Record<Size, number> = {
+  lg: 20,
+  md: 19,
+  sm: 17,
 };
 
 export function AppButton({
   title,
   onPress,
   variant = "primary",
+  size = "lg",
   icon: Icon,
   disabled,
   loading,
   style,
 }: AppButtonProps) {
-  const isPrimary = variant === "primary";
-  const foreground =
-    variant === "primary" || variant === "danger" ? colors.white : colors.primaryDark;
-
-  const inner = (
-    <View style={styles.inner}>
-      {loading ? (
-        <ActivityIndicator color={foreground} />
-      ) : (
-        <>
-          {Icon ? <Icon color={foreground} size={20} strokeWidth={2.5} /> : null}
-          <Text style={[styles.text, { color: foreground }]}>{title}</Text>
-        </>
-      )}
-    </View>
-  );
+  const foreground = FOREGROUND[variant];
 
   return (
     <Pressable
@@ -60,57 +67,63 @@ export function AppButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        { minHeight: HEIGHT[size] },
         styles[variant],
         disabled ? styles.disabled : null,
         pressed && !disabled ? styles.pressed : null,
         style,
       ]}
     >
-      {isPrimary ? (
-        <LinearGradient
-          colors={[colors.primary, colors.primaryDark]}
-          end={{ x: 1, y: 1 }}
-          start={{ x: 0, y: 0 }}
-          style={styles.gradient}
-        >
-          {inner}
-        </LinearGradient>
-      ) : (
-        inner
-      )}
+      <View style={styles.inner}>
+        {loading ? (
+          <ActivityIndicator color={foreground} />
+        ) : (
+          <>
+            {Icon ? (
+              <Icon color={foreground} size={ICON_SIZE[size]} strokeWidth={2.5} />
+            ) : null}
+            <Text
+              style={[
+                size === "sm" ? styles.textSm : styles.text,
+                { color: foreground },
+              ]}
+            >
+              {title}
+            </Text>
+          </>
+        )}
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 56,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     overflow: "hidden",
   },
-  gradient: {
-    flex: 1,
-    justifyContent: "center",
-  },
   inner: {
-    minHeight: 56,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: spacing.sm,
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
   },
   text: {
     ...typography.label,
+    fontSize: 15,
+  },
+  textSm: {
+    ...typography.label,
+    fontSize: 13,
   },
   primary: {
     backgroundColor: colors.primary,
-    ...shadows.floating,
   },
   secondary: {
-    backgroundColor: colors.surfaceMint,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.primarySoft,
   },
   ghost: {
     backgroundColor: "transparent",
@@ -119,9 +132,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
   },
   disabled: {
-    opacity: 0.55,
+    opacity: 0.45,
   },
   pressed: {
-    transform: [{ scale: 0.98 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.985 }],
   },
 });

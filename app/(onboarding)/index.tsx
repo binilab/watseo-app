@@ -1,74 +1,92 @@
 import { router } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-import { HeartHandshake, ShieldCheck } from "lucide-react-native";
-import { AppButton, Card, Screen, StatusChip } from "@/src/components";
-import { colors, spacing, typography } from "@/src/theme/tokens";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { ShieldCheck } from "lucide-react-native";
+import { AppButton } from "@/src/components";
+import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 export default function OnboardingScreen() {
   return (
-    <Screen
-      hasBottomTabs={false}
-      footer={
-        <AppButton
-          icon={HeartHandshake}
-          onPress={() => router.push("/login")}
-          title="왔어 시작하기"
-        />
-      }
-    >
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="light" />
+
       <View style={styles.hero}>
-        <View style={styles.mark}>
-          <ShieldCheck color={colors.primaryDark} size={42} strokeWidth={2.5} />
+        <View style={styles.logoTile}>
+          <ShieldCheck color={colors.white} size={34} strokeWidth={2.6} />
         </View>
-        <StatusChip label="부드러운 도착 확인" tone="active" />
-        <Text style={styles.title}>도착했다는 말이 가장 편하게 닿도록</Text>
-        <Text style={styles.description}>
-          왔어는 귀가 시작부터 도착 확인까지 연결된 사람과 부드럽게 상태를 나누는 앱입니다.
-        </Text>
+        <Text style={styles.wordmark}>왔어</Text>
+        <Text style={styles.tagline}>도착하면 알려요</Text>
       </View>
 
-      <Card tone="mint">
-        <Text style={styles.cardTitle}>오늘 밤의 흐름</Text>
-        <View style={styles.steps}>
-          <Text style={styles.step}>1. 도착지를 고르고 귀가를 시작해요.</Text>
-          <Text style={styles.step}>2. 확인 상대가 진행 상태를 볼 수 있어요.</Text>
-          <Text style={styles.step}>3. 도착하면 버튼이나 QR로 완료해요.</Text>
-        </View>
-      </Card>
-    </Screen>
+      <View style={styles.footer}>
+        <Text style={styles.note}>상세 위치 없이, 도착 상태만 함께 확인해요</Text>
+        <AppButton onPress={() => router.push("/login")} title="시작하기" />
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => router.push("/login")}
+          style={({ pressed }) => [styles.secondary, pressed ? styles.pressed : null]}
+        >
+          <Text style={styles.secondaryText}>이미 계정이 있어요</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: spacing.lg,
-    paddingTop: 56,
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing.xl,
   },
-  mark: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+  hero: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surfaceMint,
+    gap: spacing.lg,
   },
-  title: {
-    ...typography.title,
-    color: colors.text,
+  logoTile: {
+    width: 76,
+    height: 76,
+    borderRadius: radius.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+    marginBottom: spacing.xs,
   },
-  description: {
-    ...typography.body,
-    color: colors.textMuted,
+  wordmark: {
+    fontSize: 56,
+    lineHeight: 62,
+    fontWeight: "800",
+    color: colors.white,
+    letterSpacing: -1,
   },
-  cardTitle: {
+  tagline: {
     ...typography.subheading,
-    color: colors.text,
+    color: colors.textOnDarkMuted,
   },
-  steps: {
-    gap: spacing.sm,
+  footer: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
   },
-  step: {
-    ...typography.body,
-    color: colors.textMuted,
+  note: {
+    ...typography.caption,
+    color: colors.textOnDarkMuted,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
+  secondary: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryText: {
+    ...typography.label,
+    color: colors.textOnDark,
+  },
+  pressed: {
+    opacity: 0.6,
   },
 });

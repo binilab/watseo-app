@@ -23,12 +23,12 @@ export default function RoleScreen() {
       }
     >
       {from === "signup" ? (
-        <StatusChip label="계정이 준비됐어요. 사용 방식을 이어서 선택해주세요." tone="active" />
+        <StatusChip label="계정이 준비됐어요" tone="active" />
       ) : null}
 
       <SectionHeader
-        title="어떤 방식으로 사용할까요?"
-        description="역할은 나중에 언제든 바꿀 수 있어요. 지금은 온보딩 흐름만 확인합니다."
+        title="어떻게 사용할까요?"
+        description="역할은 언제든 바꿀 수 있어요."
       />
 
       {roleOptions.map((item) => (

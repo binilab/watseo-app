@@ -12,26 +12,26 @@ import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
 function getAcceptErrorMessage(message?: string) {
   if (!message) {
-    return "초대를 수락하지 못했어요. 코드를 다시 확인해주세요.";
+    return "초대 코드를 확인해 주세요";
   }
 
   if (message.includes("own invite")) {
-    return "내가 만든 초대 코드는 직접 수락할 수 없어요.";
+    return "내가 만든 초대 코드는 수락할 수 없어요";
   }
 
   if (message.includes("not available")) {
-    return "이미 사용됐거나 만료됐거나 코드가 맞지 않아요.";
+    return "이미 사용했거나 만료된 코드예요";
   }
 
   if (message.includes("required")) {
-    return "초대 코드를 입력해주세요.";
+    return "초대 코드를 입력해 주세요";
   }
 
   if (message.includes("already exists")) {
-    return "이미 연결된 사람이거나 이 초대로 연결할 수 없어요.";
+    return "이미 연결된 사람이에요";
   }
 
-  return "초대를 수락하지 못했어요. 코드를 다시 확인해주세요.";
+  return "초대 코드를 확인해 주세요";
 }
 
 export default function InviteAcceptScreen() {
@@ -45,7 +45,7 @@ export default function InviteAcceptScreen() {
 
   const handleAcceptInvite = async () => {
     if (!normalizedToken) {
-      setMessage("초대 코드를 입력해주세요.");
+      setMessage("초대 코드를 입력해 주세요");
       return;
     }
 
@@ -64,12 +64,12 @@ export default function InviteAcceptScreen() {
       }
 
       setAccepted(true);
-      setMessage("연결이 완료됐어요.");
+      setMessage("연결됐어요");
     } catch (error) {
       console.error("accept invite failed", error, {
         tokenLength: normalizedToken.length,
       });
-      setMessage("초대를 수락하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setMessage("연결이 안 됐어요. 잠시 뒤 다시 해주세요");
     } finally {
       setAccepting(false);
     }
@@ -83,12 +83,13 @@ export default function InviteAcceptScreen() {
             icon={accepted ? Check : Link2}
             loading={accepting}
             onPress={accepted ? () => router.replace("/connections") : handleAcceptInvite}
-            title={accepted ? "연결 대시보드로 이동" : "초대 수락"}
+            title={accepted ? "연결 목록으로" : "초대 수락"}
           />
           <AppButton
             onPress={() => router.push("/home")}
-            title="홈으로 가기"
-            variant="secondary"
+            size="md"
+            title="홈으로"
+            variant="ghost"
           />
         </View>
       }
@@ -97,12 +98,12 @@ export default function InviteAcceptScreen() {
         <View style={styles.iconWrap}>
           <Link2 color={colors.primaryDark} size={46} strokeWidth={2.4} />
         </View>
-        <StatusChip label={accepted ? "연결 완료" : "연결 초대 수락"} tone="active" />
-        <Text style={styles.title}>{accepted ? "연결이 완료됐어요" : "초대 코드를 입력해주세요"}</Text>
+        <StatusChip label={accepted ? "연결됐어요" : "초대 수락"} tone="active" />
+        <Text style={styles.title}>{accepted ? "연결됐어요" : "초대 코드를 입력해 주세요"}</Text>
         <Text style={styles.copy}>
           {accepted
-            ? "이제 도착 인증 상태와 필요한 알림을 함께 확인할 수 있어요."
-            : "초대 코드는 만든 사람이 화면에서 복사해 전달한 값입니다."}
+            ? "이제 서로의 도착을 함께 확인해요."
+            : "상대가 보내준 초대 코드를 입력해 주세요."}
         </Text>
       </Card>
 
@@ -114,7 +115,7 @@ export default function InviteAcceptScreen() {
             autoCorrect={false}
             editable={!accepting}
             onChangeText={(value) => setInviteToken(normalizeInviteToken(value))}
-            placeholder="받은 초대 코드를 붙여넣기"
+            placeholder="받은 초대 코드 입력"
             placeholderTextColor={colors.textSubtle}
             style={styles.input}
             value={inviteToken}
@@ -159,11 +160,11 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
-    minHeight: 54,
+    minHeight: 52,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surfaceSoft,
     color: colors.text,
     paddingHorizontal: spacing.lg,
   },

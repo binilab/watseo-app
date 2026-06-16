@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import {
   colors,
+  layout,
   spacing,
   TAB_CONTENT_BOTTOM_INSET,
 } from "@/src/theme/tokens";
@@ -92,15 +93,15 @@ export function Screen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.backgroundSoft,
   },
   keyboard: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
-    gap: spacing.xl,
+    paddingHorizontal: layout.screenPaddingX,
+    paddingTop: layout.screenPaddingTop,
+    gap: layout.sectionGap,
   },
   staticContent: {
     flex: 1,
@@ -108,6 +109,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.xl,
     paddingTop: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.backgroundSoft,
   },
 });
