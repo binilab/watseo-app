@@ -1,5 +1,4 @@
--- Watseo onboarding state draft
--- Do not apply until the user explicitly says: 적용 승인
+-- Watseo onboarding state
 
 begin;
 
