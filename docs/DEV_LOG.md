@@ -275,3 +275,22 @@ Supabase v1 schema migration, 기본 Auth 연결, 최소 route guard, 도착 장
 - 회원가입 후 `profiles` row는 DB trigger `handle_new_user_profile`이 생성한다.
 - 앱 코드에서 `profiles` row를 직접 insert하지 않는다.
 - 전체 route guard는 아직 과하게 구현하지 않고 다음 단계에서 설계한다.
+
+## 2026-06-17 배포 준비 (푸시 알림 제외)
+
+1. 푸시 알림 기능을 이번 MVP 배포 범위에서 제외했다.
+   - `expo-notifications` 기반 토큰 등록, `device_push_tokens` 저장 UI, Edge Function 발송, 마이 탭 알림 켜기/끄기, notification observer를 사용하지 않는다.
+   - 현재 워킹 트리에는 관련 앱 코드/패키지가 없다(`expo-notifications`, `expo-device` 미설치, `src/features/notifications/push.ts` 없음, 마이 탭에 알림 메뉴 없음).
+2. `notification_events` 내부 기록은 유지한다.
+   - 귀가 시작(`trip_started`), 시간 연장 요청(`time_extension_requested`), 도움 요청(`help_requested`), QR 도착 확인(`arrived_partial`)에서 `createTripNotificationEvents`가 row를 만든다.
+   - 실제 push 발송 호출은 없다.
+3. 배포 설정(app.json)을 보강했다.
+   - `ios.bundleIdentifier` / `android.package` = `com.binilab.watseo` 명시(네이티브 `ios/` 값과 일치).
+   - `expo-camera` config 플러그인 추가, 카메라 권한 문구를 QR 목적 한글로 정리.
+   - `ios/app/Info.plist`의 `NSCameraUsageDescription`도 동일 문구로 갱신.
+   - 알림 권한 문구는 추가하지 않는다(푸시 미사용).
+4. 네이티브 정리 메모.
+   - `ios/`는 `expo-notifications`가 있던 시점에 prebuild되어 `ExpoNotifications` Pod가 남아 있다.
+   - 릴리스 빌드 전 `npx expo prebuild --clean` 또는 `cd ios && pod install`로 정리 권장.
+5. `docs/RELEASE_CHECKLIST.md`를 추가했다.
+6. 남은 TODO: 실제 푸시 알림은 MVP 이후 단계로 미룬다.

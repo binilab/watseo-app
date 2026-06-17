@@ -126,3 +126,12 @@ MVP 전체 QA 단계에 진입했으며, 수동 테스트 체크리스트는 `do
 ## Privacy Principle
 
 상세 위치는 계속 공유되지 않고, 도착 인증 상태와 필요한 알림만 전달돼요.
+
+## Release Scope (MVP)
+
+- 푸시 알림(실제 발송)은 MVP 배포 범위에서 제외한다. 관련 앱 코드/패키지는 현재 트리에 없다.
+- `notification_events`는 내부 기록용으로 유지한다(귀가 시작/시간 연장/도움 요청/도착 확인 시 row 생성). 발송은 하지 않는다.
+- iOS/Android 식별자: `com.binilab.watseo` (app.json + 네이티브 `ios/` 일치).
+- 카메라 권한은 QR 도착 확인 목적으로만 사용("도착 장소의 QR 코드를 확인하기 위해 카메라를 사용해요.").
+- 배포 점검 목록: `docs/RELEASE_CHECKLIST.md`.
+- 실제 푸시 알림은 MVP 이후 TODO로 둔다(설계는 이전 작업 git 히스토리 참고).

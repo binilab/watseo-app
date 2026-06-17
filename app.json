@@ -14,9 +14,11 @@
       "backgroundColor": "#0F1B2D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.binilab.watseo"
     },
     "android": {
+      "package": "com.binilab.watseo",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,7 +31,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "도착 장소의 QR 코드를 확인하기 위해 카메라를 사용해요."
+        }
+      ]
     ]
   }
 }
