@@ -8,9 +8,9 @@
 - [ ] `isSupabaseConfigured`가 true가 되는지 앱 로그인 화면에서 확인.
 
 ## 2. Supabase project ref 확인
-- [ ] project ref: `zknuyyknmxgrjuipdysf` (`watseo-app`).
+- [ ] project ref: `<YOUR_SUPABASE_PROJECT_REF>` (Supabase 대시보드에서 확인).
 - [ ] 적용된 마이그레이션: `watseo_v1_schema`, `add_onboarding_state_to_profiles`, `fix_accept_invite_digest_schema`.
-- [ ] `device_push_tokens` 마이그레이션 파일은 저장소에 남아 있으나 **MVP에서는 사용하지 않음**(적용 여부 무관, 푸시 비활성).
+- [ ] `device_push_tokens` 등 푸시 관련 마이그레이션/코드는 MVP 범위에서 제외됨(실제 푸시 알림은 MVP 이후 TODO).
 - [ ] RLS 활성 상태 확인.
 
 ## 3. 타입체크

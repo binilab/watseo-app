@@ -1,7 +1,5 @@
--- Watseo v1 schema draft
--- Target project ref: zknuyyknmxgrjuipdysf
--- Target project name: watseo-app
--- Do not apply until the user explicitly says: 적용 승인
+-- Watseo v1 schema
+-- Target project: see Supabase 대시보드 (<YOUR_SUPABASE_PROJECT_REF>)
 
 begin;
 

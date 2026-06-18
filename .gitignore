@@ -32,7 +32,9 @@ yarn-error.*
 
 # local env files
 .env
+.env.*
 .env*.local
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -40,3 +42,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# logs
+*.log
+
+# local AI/editor files
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# temporary assets
+*.zip
