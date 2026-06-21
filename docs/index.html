@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>왔어 · 법적 문서</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --ink: #1f2a3a;
+      --muted: #5b6b80;
+      --accent: #2f6fed;
+      --border: #e3e9f2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+        "Noto Sans KR", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+      -webkit-text-size-adjust: 100%;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    header {
+      text-align: center;
+      padding: 24px 0 8px;
+    }
+    .app-name {
+      font-size: 30px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .app-desc {
+      color: var(--muted);
+      margin: 8px 0 0;
+      font-size: 15px;
+    }
+    .links {
+      margin-top: 28px;
+      display: grid;
+      gap: 14px;
+    }
+    .link-card {
+      display: block;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .link-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .link-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .link-sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 6px 0 0;
+    }
+    .arrow { color: var(--accent); font-weight: 600; }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 class="app-name">왔어</h1>
+      <p class="app-desc">상세 위치 없이, 도착 상태만 함께 확인하는 귀가 확인 앱</p>
+    </header>
+
+    <main class="links">
+      <a class="link-card" href="./privacy-policy.html">
+        <p class="link-title">개인정보처리방침 <span class="arrow">→</span></p>
+        <p class="link-sub">왔어가 어떤 정보를 수집하고 어떻게 사용하는지 안내합니다.</p>
+      </a>
+      <a class="link-card" href="./terms.html">
+        <p class="link-title">이용약관 <span class="arrow">→</span></p>
+        <p class="link-sub">서비스 이용 조건과 사용자의 책임을 안내합니다.</p>
+      </a>
+    </main>
+
+    <footer>
+      <p>문의: <a href="mailto:rladnjsqls64@gmail.com">rladnjsqls64@gmail.com</a></p>
+      <p>본 문서는 앱 제출용 초안이며 법률 자문이 아닙니다. 실제 서비스 운영 전 최종 검토가 필요합니다.</p>
+    </footer>
+  </div>
+</body>
+</html>
