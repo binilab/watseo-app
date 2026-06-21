@@ -53,3 +53,8 @@ AGENTS.md
 
 # temporary assets
 *.zip
+
+
+secrets/
+*firebase-adminsdk*.json
+*fcm-service-account*.json

@@ -19,6 +19,7 @@
     },
     "android": {
       "package": "com.binilab.watseo",
+      "googleServicesFile": "./google-services.json", 
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

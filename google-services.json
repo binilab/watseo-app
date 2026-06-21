@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "773641770678",
+    "project_id": "watseo-e637b",
+    "storage_bucket": "watseo-e637b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773641770678:android:261f562335ea12b837f817",
+        "android_client_info": {
+          "package_name": "com.binilab.watseo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfcIUNPZcXk2InXu687qYJkzlek5qiZNU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
