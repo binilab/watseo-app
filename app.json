@@ -2,7 +2,6 @@
   "expo": {
     "name": "왔어",
     "scheme": "watseo",
-    
     "slug": "watseo-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,14 +18,18 @@
     },
     "android": {
       "package": "com.binilab.watseo",
-      "googleServicesFile": "./google-services.json", 
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,6 +42,13 @@
           "cameraPermission": "도착 장소의 QR 코드를 확인하기 위해 카메라를 사용해요."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "569c5d4b-96bc-471e-a1e2-9619cc2fc5b9"
+      }
+    },
+    "owner": "binilab"
   }
 }
