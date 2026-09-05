@@ -156,6 +156,44 @@ export type Database = {
           },
         ];
       };
+      device_push_tokens: {
+        Row: {
+          created_at: string;
+          device_id: string | null;
+          id: string;
+          owner_id: string;
+          platform: string;
+          push_token: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          device_id?: string | null;
+          id?: string;
+          owner_id: string;
+          platform: string;
+          push_token: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          device_id?: string | null;
+          id?: string;
+          owner_id?: string;
+          platform?: string;
+          push_token?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "device_push_tokens_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       help_requests: {
         Row: {
           acknowledged_at: string | null;

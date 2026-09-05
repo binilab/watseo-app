@@ -41,7 +41,9 @@
         {
           "cameraPermission": "도착 장소의 QR 코드를 확인하기 위해 카메라를 사용해요."
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-notifications"
     ],
     "extra": {
       "router": {},

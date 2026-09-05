@@ -5,9 +5,18 @@ import { LogIn, Mail, UserPlus } from "lucide-react-native";
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { getOnboardingRoute } from "@/src/features/auth/onboarding";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
-import { logFriendlyError } from "@/src/lib/friendlyAlert";
+import {
+  signInWithProvider,
+  type SocialProvider,
+} from "@/src/features/auth/socialAuth";
+import { logFriendlyError, showFriendlyAlert } from "@/src/lib/friendlyAlert";
 import { isSupabaseConfigured, supabase } from "@/src/lib/supabase";
 import { colors, spacing, typography } from "@/src/theme/tokens";
+
+const SOCIAL_LABELS: Record<SocialProvider, string> = {
+  google: "Google로 계속하기",
+  kakao: "카카오로 계속하기",
+};
 
 function getAuthMessage(error: unknown, mode: "signIn" | "signUp") {
   const message =
@@ -49,6 +58,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState<"signIn" | "signUp" | null>(null);
+  const [socialSubmitting, setSocialSubmitting] = useState<SocialProvider | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isStartingOnboarding, setIsStartingOnboarding] = useState(false);
 
@@ -71,7 +81,40 @@ export default function LoginScreen() {
   }, [isStartingOnboarding, session]);
 
   const trimmedEmail = email.trim();
-  const canSubmit = Boolean(trimmedEmail && password && !submitting && !sessionLoading);
+  const isBusy = Boolean(submitting || socialSubmitting || sessionLoading);
+  const canSubmit = Boolean(trimmedEmail && password && !isBusy);
+
+  async function handleSocial(provider: SocialProvider) {
+    if (isBusy) return;
+
+    if (!supabase) {
+      setMessage("로그인 준비 중이에요. 잠시만요.");
+      return;
+    }
+
+    setSocialSubmitting(provider);
+    setMessage(null);
+
+    // 세션이 만들어지면 useAuthSession 이 감지해 자동으로 다음 화면으로 이동한다.
+    const result = await signInWithProvider(provider);
+
+    setSocialSubmitting(null);
+
+    if (result.ok || result.reason === "cancelled") {
+      return;
+    }
+
+    if (result.reason === "not_configured") {
+      setMessage("소셜 로그인 준비 중이에요. 잠시만요.");
+      return;
+    }
+
+    logFriendlyError("소셜 로그인 확인", result.error, { provider });
+    showFriendlyAlert({
+      message: "잠시 뒤 다시 시도하거나 다른 방법으로 로그인해 주세요.",
+      title: "로그인을 완료하지 못했어요",
+    });
+  }
 
   async function signIn() {
     if (!supabase) {
@@ -221,6 +264,24 @@ export default function LoginScreen() {
         ) : null}
       </Card>
 
+      <View style={styles.socialSection}>
+        <Text style={styles.socialLabel}>또는 소셜 계정으로 계속하기</Text>
+        <AppButton
+          disabled={isBusy}
+          loading={socialSubmitting === "google"}
+          onPress={() => handleSocial("google")}
+          title={SOCIAL_LABELS.google}
+          variant="secondary"
+        />
+        <AppButton
+          disabled={isBusy}
+          loading={socialSubmitting === "kakao"}
+          onPress={() => handleSocial("kakao")}
+          title={SOCIAL_LABELS.kakao}
+          variant="secondary"
+        />
+      </View>
+
       <Card tone="mint">
         <View style={styles.cardHeader}>
           <UserPlus color={colors.primaryDark} size={20} strokeWidth={2.4} />
@@ -252,6 +313,14 @@ const styles = StyleSheet.create({
   },
   formCard: {
     gap: spacing.lg,
+  },
+  socialSection: {
+    gap: spacing.md,
+  },
+  socialLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: "center",
   },
   inputGroup: {
     gap: spacing.sm,

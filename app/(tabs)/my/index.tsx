@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import { LogOut, RotateCw, Save } from "lucide-react-native";
+import { Platform, StyleSheet, Text, TextInput } from "react-native";
+import { Bell, LogOut, RotateCw, Save } from "lucide-react-native";
 
 import { AccountCard, AppButton, Card, Screen, SectionHeader } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
@@ -10,6 +10,11 @@ import {
   updateProfileDisplayName,
   type Profile,
 } from "@/src/features/profile/api";
+import { savePushToken } from "@/src/features/notifications/api";
+import {
+  describePushRegistration,
+  registerForPushNotificationsAsync,
+} from "@/src/features/notifications/push";
 import { logFriendlyError } from "@/src/lib/friendlyAlert";
 import { colors, radius, spacing, typography } from "@/src/theme/tokens";
 
@@ -23,6 +28,8 @@ export default function MyScreen() {
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutMessage, setSignOutMessage] = useState<string | null>(null);
+  const [preparingPush, setPreparingPush] = useState(false);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,6 +92,27 @@ export default function MyScreen() {
     setProfileMessage("저장했어요");
   }
 
+  async function handlePreparePush() {
+    if (!user) return;
+
+    setPreparingPush(true);
+    setPushMessage(null);
+
+    const result = await registerForPushNotificationsAsync();
+
+    if (result.status === "granted") {
+      // 토큰 저장은 device_push_tokens 적용 후 동작한다. 실패해도 준비 상태는 유지한다.
+      await savePushToken({
+        ownerId: user.id,
+        pushToken: result.token,
+        platform: Platform.OS,
+      });
+    }
+
+    setPreparingPush(false);
+    setPushMessage(describePushRegistration(result.status));
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     setSignOutMessage(null);
@@ -142,6 +170,23 @@ export default function MyScreen() {
       </Card>
 
       <Card>
+        <Text style={styles.cardTitle}>알림 준비</Text>
+        <Text style={styles.copy}>
+          도착 확인과 필요한 알림을 받을 수 있도록 준비해요.
+        </Text>
+        <AppButton
+          disabled={preparingPush || !user}
+          icon={Bell}
+          loading={preparingPush}
+          onPress={handlePreparePush}
+          size="md"
+          title="알림 준비하기"
+          variant="secondary"
+        />
+        {pushMessage ? <Text style={styles.pushMessage}>{pushMessage}</Text> : null}
+      </Card>
+
+      <Card>
         <Text style={styles.cardTitle}>계정</Text>
         <AppButton
           icon={RotateCw}
@@ -192,6 +237,11 @@ const styles = StyleSheet.create({
   profileMessage: {
     ...typography.caption,
     color: colors.primaryDark,
+    textAlign: "center",
+  },
+  pushMessage: {
+    ...typography.caption,
+    color: colors.textMuted,
     textAlign: "center",
   },
   signOutMessage: {

@@ -10,31 +10,36 @@ type ArrivalVerificationInsert =
 type TripUpdate = Database["public"]["Tables"]["trips"]["Update"];
 type WatseoSupabaseClient = SupabaseClient<Database>;
 
-export type VerifyTripArrivalByQrInput = {
+type ResolvedTripDestination = {
+  tripId: string;
+  destinationId: string;
+  destinationName: string;
+};
+
+type ArrivalFailureReason =
+  | "missing_input"
+  | "trip_not_found"
+  | "destination_not_found"
+  | "token_mismatch"
+  | "already_arrived"
+  | "trip_cancelled"
+  | "verification_insert_failed"
+  | "trip_update_failed"
+  | "unknown";
+
+export type TripArrivalInput = {
   tripId: string;
   userId: string;
   qrToken: string;
 };
 
-export type VerifyTripArrivalByQrResult =
-  | {
-      ok: true;
-      tripId: string;
-    }
-  | {
-      ok: false;
-      reason:
-        | "missing_input"
-        | "trip_not_found"
-        | "destination_not_found"
-        | "token_mismatch"
-        | "already_arrived"
-        | "trip_cancelled"
-        | "verification_insert_failed"
-        | "trip_update_failed"
-        | "unknown";
-      error?: unknown;
-    };
+export type CheckTripArrivalQrResult =
+  | { ok: true; tripId: string; destinationName: string }
+  | { ok: false; reason: ArrivalFailureReason; error?: unknown };
+
+export type ConfirmTripArrivalResult =
+  | { ok: true; tripId: string }
+  | { ok: false; reason: ArrivalFailureReason; error?: unknown };
 
 function getSupabaseClient(): WatseoSupabaseClient {
   if (!supabase) {
@@ -48,10 +53,17 @@ function normalizeQrToken(qrToken: string) {
   return qrToken.trim();
 }
 
-export async function verifyTripArrivalByQr(
-  input: VerifyTripArrivalByQrInput,
-): Promise<VerifyTripArrivalByQrResult> {
-  const client = getSupabaseClient();
+/**
+ * trip + destination 을 조회하고 QR 토큰 일치 여부를 검증한다(쓰기 없음).
+ * 1단계(검증)와 2단계(최종 저장)에서 공통으로 사용한다.
+ */
+async function resolveTripDestinationByQr(
+  client: WatseoSupabaseClient,
+  input: TripArrivalInput,
+): Promise<
+  | { ok: true; data: ResolvedTripDestination }
+  | { ok: false; reason: ArrivalFailureReason; error?: unknown }
+> {
   const qrToken = normalizeQrToken(input.qrToken);
 
   if (!input.tripId || !input.userId || !qrToken) {
@@ -71,11 +83,7 @@ export async function verifyTripArrivalByQr(
       tripId: input.tripId,
     });
 
-    return {
-      ok: false,
-      reason: "trip_not_found",
-      error: tripResult.error,
-    };
+    return { ok: false, reason: "trip_not_found", error: tripResult.error };
   }
 
   if (
@@ -114,10 +122,58 @@ export async function verifyTripArrivalByQr(
     return { ok: false, reason: "token_mismatch" };
   }
 
+  return {
+    ok: true,
+    data: {
+      tripId: tripResult.data.id,
+      destinationId: tripResult.data.destination_id,
+      destinationName: destinationResult.data.name,
+    },
+  };
+}
+
+/**
+ * 1단계: 장소 QR 코드만 검증한다. 도착 기록은 저장하지 않는다.
+ * 성공 시 사용자가 최종 "도착 확인 완료"를 누르도록 안내한다.
+ */
+export async function checkTripArrivalQr(
+  input: TripArrivalInput,
+): Promise<CheckTripArrivalQrResult> {
+  const client = getSupabaseClient();
+  const resolved = await resolveTripDestinationByQr(client, input);
+
+  if (!resolved.ok) {
+    return { ok: false, reason: resolved.reason, error: resolved.error };
+  }
+
+  return {
+    ok: true,
+    tripId: resolved.data.tripId,
+    destinationName: resolved.data.destinationName,
+  };
+}
+
+/**
+ * 2단계: 사용자의 최종 확인. 이때 arrival_verifications 기록을 만들고
+ * trip 상태를 도착 확인 완료(arrived_verified)로 업데이트한다.
+ * QR 토큰을 다시 검증해 1단계와 동일한 장소인지 확인한다.
+ */
+export async function confirmTripArrival(
+  input: TripArrivalInput,
+): Promise<ConfirmTripArrivalResult> {
+  const client = getSupabaseClient();
+  const resolved = await resolveTripDestinationByQr(client, input);
+
+  if (!resolved.ok) {
+    return { ok: false, reason: resolved.reason, error: resolved.error };
+  }
+
+  const { tripId, destinationId, destinationName } = resolved.data;
   const verifiedAt = new Date().toISOString();
+
   const verificationInsert: ArrivalVerificationInsert = {
-    trip_id: tripResult.data.id,
-    destination_id: tripResult.data.destination_id,
+    trip_id: tripId,
+    destination_id: destinationId,
     verified_by: input.userId,
     method: "qr_code",
     status: "succeeded",
@@ -133,7 +189,7 @@ export async function verifyTripArrivalByQr(
   if (verificationResult.error) {
     logFriendlyError("QR 도착 기록 확인", verificationResult.error, {
       reason: "verification_insert_failed",
-      tripId: input.tripId,
+      tripId,
     });
 
     return {
@@ -144,13 +200,13 @@ export async function verifyTripArrivalByQr(
   }
 
   const tripUpdate: TripUpdate = {
-    state: "arrived_partial",
+    state: "arrived_verified",
     arrived_at: verifiedAt,
   };
   const updateResult = await client
     .from("trips")
     .update(tripUpdate)
-    .eq("id", tripResult.data.id)
+    .eq("id", tripId)
     .eq("owner_id", input.userId)
     .select("id")
     .single();
@@ -158,7 +214,7 @@ export async function verifyTripArrivalByQr(
   if (updateResult.error) {
     logFriendlyError("QR 도착 상태 확인", updateResult.error, {
       reason: "trip_update_failed",
-      tripId: input.tripId,
+      tripId,
     });
 
     return {
@@ -171,25 +227,24 @@ export async function verifyTripArrivalByQr(
   const recipientsResult = await client
     .from("trip_recipients")
     .select("recipient_id")
-    .eq("trip_id", tripResult.data.id);
+    .eq("trip_id", tripId);
 
   if (recipientsResult.error) {
     logFriendlyError("QR 도착 알림 대상 확인", recipientsResult.error, {
-      tripId: input.tripId,
+      tripId,
     });
   } else {
     await createTripNotificationEvents({
       actorId: input.userId,
-      destinationName: destinationResult.data.name,
-      notificationType: "arrived_partial",
-      recipientIds: (recipientsResult.data ?? []).map((recipient) => recipient.recipient_id),
-      state: "arrived_partial",
-      tripId: tripResult.data.id,
+      destinationName,
+      notificationType: "arrived_verified",
+      recipientIds: (recipientsResult.data ?? []).map(
+        (recipient) => recipient.recipient_id,
+      ),
+      state: "arrived_verified",
+      tripId,
     });
   }
 
-  return {
-    ok: true,
-    tripId: tripResult.data.id,
-  };
+  return { ok: true, tripId };
 }

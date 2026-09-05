@@ -6,7 +6,7 @@ import { CheckCircle2, RefreshCw, ScanLine } from "lucide-react-native";
 
 import { AppButton, Card, Screen, StatusChip } from "@/src/components";
 import { useAuthSession } from "@/src/features/auth/useAuthSession";
-import { verifyTripArrivalByQr } from "@/src/features/arrival/api";
+import { checkTripArrivalQr } from "@/src/features/arrival/api";
 import {
   fetchLatestActiveTrip,
   fetchTripById,
@@ -190,7 +190,7 @@ export default function QrArrivalScreen() {
     setMessage(null);
 
     try {
-      const result = await verifyTripArrivalByQr({
+      const result = await checkTripArrivalQr({
         tripId: trip.id,
         userId: user.id,
         qrToken: normalizedQrCode,
@@ -201,9 +201,14 @@ export default function QrArrivalScreen() {
         return;
       }
 
+      // 1단계 통과: 최종 확인 화면으로 이동(아직 도착 기록은 저장하지 않음).
       router.replace({
         pathname: "/home/partial-verification",
-        params: { tripId: result.tripId },
+        params: {
+          tripId: result.tripId,
+          qrToken: normalizedQrCode,
+          destinationName: result.destinationName,
+        },
       });
     } catch (error) {
       logFriendlyError("QR 도착 확인", error, {
